@@ -19,7 +19,7 @@ class PolicyValueNet:
         self.board_size = board_size
         self.l2_const = 1e-4  # l2正则项比例因子
         self.creak_network()
-        self.model_filename = 'model/model.h5'
+        self.model_filename = 'models/model.h5'
         self.lr = lr
         self._loss_train_op()
 
