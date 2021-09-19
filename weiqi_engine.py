@@ -63,47 +63,47 @@ MUSICS_ALL = ['铜雀赋', '风居住的街道', 'Canon', 'Muyuuka', 'River Flow
               '美丽的神话', '虫儿飞', '那些花儿', '风华绝代', '风吹麦浪', '黄昏的归途', '江南雨', 'Childhood Memories',
               'Lettre A Elise', 'Star Sky', '夜的钢琴曲5', '梦中的婚礼', '瞬间的永恒', '秋日私语']
 # try:
-#     SOUNDS = {'stone': pygame.mixer.Sound('assets/audio/Stone.wav'),
-#               'button': pygame.mixer.Sound('assets/audio/Button.wav')}
+#     SOUNDS = {'stone': pygame.mixer.Sound('assets/audios/Stone.wav'),
+#               'button': pygame.mixer.Sound('assets/audios/Button.wav')}
 #
-#     MUSICS = [['铜雀赋', pygame.mixer.Sound('assets/music/铜雀赋.mp3')],
-#               ['风居住的街道', pygame.mixer.Sound('assets/music/风居住的街道.mp3')],
-#               ['Canon', pygame.mixer.Sound('assets/music/Canon.mp3')],
-#               ['Muyuuka', pygame.mixer.Sound('assets/music/Muyuuka.mp3')],
-#               ['River Flows in You', pygame.mixer.Sound('assets/music/River Flows in You.mp3')],
-#               ['Snow Dream', pygame.mixer.Sound('assets/music/Snow Dream.mp3')],
-#               ['Sundial Dreams', pygame.mixer.Sound('assets/music/Sundial Dreams.mp3')],
-#               ['The Rain', pygame.mixer.Sound('assets/music/The Rain.mp3')],
-#               ['三个人的时光', pygame.mixer.Sound('assets/music/三个人的时光.mp3')],
-#               ['人类的光', pygame.mixer.Sound('assets/music/人类的光.mp3')],
-#               ['只要为你活一天', pygame.mixer.Sound('assets/music/只要为你活一天.mp3')],
-#               ['大风起兮云飞扬', pygame.mixer.Sound('assets/music/大风起兮云飞扬.mp3')],
-#               ['天空之城', pygame.mixer.Sound('assets/music/天空之城.mp3')],
-#               ['心游太玄', pygame.mixer.Sound('assets/music/心游太玄.mp3')],
-#               ['情动', pygame.mixer.Sound('assets/music/情动.mp3')],
-#               ['我愿意', pygame.mixer.Sound('assets/music/我愿意.mp3')],
-#               ['故乡的原风景', pygame.mixer.Sound('assets/music/故乡的原风景.mp3')],
-#               ['李香兰', pygame.mixer.Sound('assets/music/李香兰.mp3')],
-#               ['流光', pygame.mixer.Sound('assets/music/流光.mp3')],
-#               ['清平乐', pygame.mixer.Sound('assets/music/清平乐.mp3')],
-#               ['爱江山更爱美人', pygame.mixer.Sound('assets/music/爱江山更爱美人.mp3')],
-#               ['琵琶语', pygame.mixer.Sound('assets/music/琵琶语.mp3')],
-#               ['画堂春', pygame.mixer.Sound('assets/music/画堂春.mp3')],
-#               ['穿越时空的思念', pygame.mixer.Sound('assets/music/穿越时空的思念.mp3')],
-#               ['美丽的神话', pygame.mixer.Sound('assets/music/美丽的神话.mp3')],
-#               ['虫儿飞', pygame.mixer.Sound('assets/music/虫儿飞.mp3')],
-#               ['那些花儿', pygame.mixer.Sound('assets/music/那些花儿.mp3')],
-#               ['风华绝代', pygame.mixer.Sound('assets/music/风华绝代.mp3')],
-#               ['风吹麦浪', pygame.mixer.Sound('assets/music/风吹麦浪.mp3')],
-#               ['黄昏的归途', pygame.mixer.Sound('assets/music/黄昏的归途.mp3')],
-#               ['江南雨', pygame.mixer.Sound('assets/music/江南雨.mp3')],
-#               ['Childhood Memories', pygame.mixer.Sound('assets/music/Childhood Memories.mp3')],
-#               ['Lettre A Elise', pygame.mixer.Sound('assets/music/Lettre A Elise.mp3')],
-#               ['Star Sky', pygame.mixer.Sound('assets/music/Star Sky.mp3')],
-#               ['夜的钢琴曲5', pygame.mixer.Sound('assets/music/夜的钢琴曲5.mp3')],
-#               ['梦中的婚礼', pygame.mixer.Sound('assets/music/梦中的婚礼.mp3')],
-#               ['瞬间的永恒', pygame.mixer.Sound('assets/music/瞬间的永恒.mp3')],
-#               ['秋日私语', pygame.mixer.Sound('assets/music/秋日私语.mp3')]]
+#     MUSICS = [['铜雀赋', pygame.mixer.Sound('assets/musics/铜雀赋.mp3')],
+#               ['风居住的街道', pygame.mixer.Sound('assets/musics/风居住的街道.mp3')],
+#               ['Canon', pygame.mixer.Sound('assets/musics/Canon.mp3')],
+#               ['Muyuuka', pygame.mixer.Sound('assets/musics/Muyuuka.mp3')],
+#               ['River Flows in You', pygame.mixer.Sound('assets/musics/River Flows in You.mp3')],
+#               ['Snow Dream', pygame.mixer.Sound('assets/musics/Snow Dream.mp3')],
+#               ['Sundial Dreams', pygame.mixer.Sound('assets/musics/Sundial Dreams.mp3')],
+#               ['The Rain', pygame.mixer.Sound('assets/musics/The Rain.mp3')],
+#               ['三个人的时光', pygame.mixer.Sound('assets/musics/三个人的时光.mp3')],
+#               ['人类的光', pygame.mixer.Sound('assets/musics/人类的光.mp3')],
+#               ['只要为你活一天', pygame.mixer.Sound('assets/musics/只要为你活一天.mp3')],
+#               ['大风起兮云飞扬', pygame.mixer.Sound('assets/musics/大风起兮云飞扬.mp3')],
+#               ['天空之城', pygame.mixer.Sound('assets/musics/天空之城.mp3')],
+#               ['心游太玄', pygame.mixer.Sound('assets/musics/心游太玄.mp3')],
+#               ['情动', pygame.mixer.Sound('assets/musics/情动.mp3')],
+#               ['我愿意', pygame.mixer.Sound('assets/musics/我愿意.mp3')],
+#               ['故乡的原风景', pygame.mixer.Sound('assets/musics/故乡的原风景.mp3')],
+#               ['李香兰', pygame.mixer.Sound('assets/musics/李香兰.mp3')],
+#               ['流光', pygame.mixer.Sound('assets/musics/流光.mp3')],
+#               ['清平乐', pygame.mixer.Sound('assets/musics/清平乐.mp3')],
+#               ['爱江山更爱美人', pygame.mixer.Sound('assets/musics/爱江山更爱美人.mp3')],
+#               ['琵琶语', pygame.mixer.Sound('assets/musics/琵琶语.mp3')],
+#               ['画堂春', pygame.mixer.Sound('assets/musics/画堂春.mp3')],
+#               ['穿越时空的思念', pygame.mixer.Sound('assets/musics/穿越时空的思念.mp3')],
+#               ['美丽的神话', pygame.mixer.Sound('assets/musics/美丽的神话.mp3')],
+#               ['虫儿飞', pygame.mixer.Sound('assets/musics/虫儿飞.mp3')],
+#               ['那些花儿', pygame.mixer.Sound('assets/musics/那些花儿.mp3')],
+#               ['风华绝代', pygame.mixer.Sound('assets/musics/风华绝代.mp3')],
+#               ['风吹麦浪', pygame.mixer.Sound('assets/musics/风吹麦浪.mp3')],
+#               ['黄昏的归途', pygame.mixer.Sound('assets/musics/黄昏的归途.mp3')],
+#               ['江南雨', pygame.mixer.Sound('assets/musics/江南雨.mp3')],
+#               ['Childhood Memories', pygame.mixer.Sound('assets/musics/Childhood Memories.mp3')],
+#               ['Lettre A Elise', pygame.mixer.Sound('assets/musics/Lettre A Elise.mp3')],
+#               ['Star Sky', pygame.mixer.Sound('assets/musics/Star Sky.mp3')],
+#               ['夜的钢琴曲5', pygame.mixer.Sound('assets/musics/夜的钢琴曲5.mp3')],
+#               ['梦中的婚礼', pygame.mixer.Sound('assets/musics/梦中的婚礼.mp3')],
+#               ['瞬间的永恒', pygame.mixer.Sound('assets/musics/瞬间的永恒.mp3')],
+#               ['秋日私语', pygame.mixer.Sound('assets/musics/秋日私语.mp3')]]
 # except:
 #     print("音效系统加载失败！")
 
@@ -744,9 +744,9 @@ class GoGameState(GoEnv):
         global SOUNDS, MUSICS, SOUNDS_ALL, MUSICS_ALL
         try:
             for sound in SOUNDS_ALL:
-                SOUNDS[sound.lower()] = pygame.mixer.Sound('assets/audio/' + sound + '.wav')
+                SOUNDS[sound.lower()] = pygame.mixer.Sound('assets/audios/' + sound + '.wav')
             for music in MUSICS_ALL:
-                MUSICS.append([music, pygame.mixer.Sound('assets/music/' + music + '.mp3')])
+                MUSICS.append([music, pygame.mixer.Sound('assets/musics/' + music + '.mp3')])
         except:
             print("音效系统加载失败！")
 

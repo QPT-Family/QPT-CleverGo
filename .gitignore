@@ -1,1 +1,5 @@
-assets/music/*
+__pycache__/
+.idea/
+
+# music files
+assets/musics/*
