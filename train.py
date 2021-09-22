@@ -15,6 +15,7 @@ import random
 from datetime import datetime
 from threading import Thread
 import time
+import paddle
 
 
 BUFFER_SIZE = 50000
@@ -22,20 +23,23 @@ BUTCH_SIZE = 128
 
 
 class TrainPipeline:
-    def __init__(self, size=9, lr=1e-3, temp=1.0, n_playout=100, c_puct=5, channel_num=10):
+    def __init__(self, size=9, lr=1e-3, temp=1.0, n_playout=100, c_puct=5, channel_num=10,
+                 model_path='models/model.pdparams'):
         self.size = size  # 棋盘大小
         self.lr = lr  # 学习率
         self.temp = temp  # 蒙特卡洛树搜索温度参数
         self.n_playout = n_playout  # 蒙特卡洛树搜索模拟次数
         self.c_puct = c_puct  # 蒙特卡洛树搜索中计算上置信限的参数
         self.channel_num = channel_num  # 棋盘状态通道数 = (规定历史步数*2 + 2)  （黑白棋子分布、当前落子方、上一步落子位置）
-        self.policy_value_net = PolicyValueNet(board_size=self.size, lr=self.lr, channel_num=self.channel_num)
+        self.policy_value_net = PolicyValueNet(board_size=self.size, input_channels=self.channel_num)
         self.update_model_flag = False  # 记录生成自对弈数据采用的网络是否需要更新参数
         self.game_state = GoGameState(size=self.size, mode='train', history_step=(channel_num - 2) // 2)
         self.player = AlphaGoPlayer(self.policy_value_net.policy_value_fn, c_puct=c_puct,
                                     n_playout=n_playout, is_selfplay=True)
         self.data_buffer = deque(maxlen=BUFFER_SIZE)
         self.train_step_count = 0
+        self.model_path = model_path
+        self.opt = paddle.optimizer.Adam(learning_rate=lr, parameters=self.policy_value_net.parameters())
 
     def collect_self_play_data(self):
         """
@@ -48,7 +52,8 @@ class TrainPipeline:
             # self.data_buffer.append(play_datas)
             self.data_buffer.extend(play_datas)
             if self.update_model_flag:
-                self.policy_value_net.load_model()
+                state_dict = paddle.load(self.model_path)
+                self.policy_value_net.set_state_dict(state_dict)
                 self.update_model_flag = False
 
     def self_play_one_game(self, temp=1.0):
@@ -107,11 +112,10 @@ class TrainPipeline:
         更新网络参数
         :return:
         """
-        time.sleep(60)
         while True:
             self.network_update_step()
             if (self.train_step_count + 1) % 1000 == 0:  # 训练1000次，保存更新一次网络参数
-                self.policy_value_net.save_model()
+                paddle.save(self.policy_value_net.state_dict(), self.model_path)
                 # 提示对局数据生成线程要更新参数
                 self.update_model_flag = True
 
@@ -123,13 +127,24 @@ class TrainPipeline:
         if len(self.data_buffer) > BUTCH_SIZE:
             self.train_step_count += 1
             mini_batch = random.sample(self.data_buffer, BUTCH_SIZE)
-            state_batch = np.array([data[0] for data in mini_batch])
-            mcts_probs_batch = np.array([data[1] for data in mini_batch])
-            winner_batch = np.array([data[2] for data in mini_batch])
-            # old_probs, old_v = self.policy_value_net.policy_value(state_batch)
-            loss, entropy = self.policy_value_net.train_step(state_batch, mcts_probs_batch, winner_batch)
+            state_batch = paddle.to_tensor(np.array([data[0] for data in mini_batch]), dtype='float32')
+            mcts_probs_batch = paddle.to_tensor(np.array([data[1] for data in mini_batch]), dtype='float32')
+            winner_batch = paddle.to_tensor(np.array([data[2] for data in mini_batch]), dtype='float32')
+
+            act_probs, value = self.policy_value_net(state_batch)
+            cs_loss = paddle.nn.functional.cross_entropy(act_probs, mcts_probs_batch,
+                                                         soft_label=True, use_softmax=False)
+            mse_loss = paddle.nn.functional.mse_loss(value, winner_batch)
+            loss = cs_loss + mse_loss
+
+            loss.backward()
+            self.opt.step()
+            self.opt.clear_grad()
+
             print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                  'STEP', self.train_step_count, 'LOSS', loss, 'entropy', entropy)
+                  'STEP', self.train_step_count, 'LOSS', loss.numpy())
+        else:
+            time.sleep(60)
 
     def run(self):
         # 启动生成对局数据线程
