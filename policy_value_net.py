@@ -18,7 +18,7 @@ class PolicyValueNet(paddle.nn.Layer):
         """
         super(PolicyValueNet, self).__init__()
 
-        # AlphaGo Zero网络：一个身子，两个头
+        # AlphaGo Zero网络架构：一个身子，两个头
         # 特征提取网络
         self.conv_layer = paddle.nn.Sequential(
             paddle.nn.Conv2D(in_channels=input_channels, out_channels=32, kernel_size=3, padding=1),

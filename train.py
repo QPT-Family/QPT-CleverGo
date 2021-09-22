@@ -5,6 +5,8 @@
 # @Software: PyCharm
 
 import sys
+import threading
+
 sys.path.append('GymGo/')
 from collections import deque
 from policy_value_net import PolicyValueNet
@@ -17,13 +19,14 @@ from threading import Thread
 import time
 import paddle
 
-
 BUFFER_SIZE = 50000
 BUTCH_SIZE = 128
+# 线程锁，用于对模型参数读取线程同步
+LOCK = threading.Lock()
 
 
 class TrainPipeline:
-    def __init__(self, size=9, lr=1e-3, temp=1.0, n_playout=100, c_puct=5, channel_num=10,
+    def __init__(self, size=9, lr=1e-2, temp=1.0, n_playout=100, c_puct=5, channel_num=10,
                  model_path='models/model.pdparams'):
         self.size = size  # 棋盘大小
         self.lr = lr  # 学习率
@@ -31,6 +34,7 @@ class TrainPipeline:
         self.n_playout = n_playout  # 蒙特卡洛树搜索模拟次数
         self.c_puct = c_puct  # 蒙特卡洛树搜索中计算上置信限的参数
         self.channel_num = channel_num  # 棋盘状态通道数 = (规定历史步数*2 + 2)  （黑白棋子分布、当前落子方、上一步落子位置）
+        # (应该初始化两个网络，一个为train状态，一个为eval状态。暂时不用更新)
         self.policy_value_net = PolicyValueNet(board_size=self.size, input_channels=self.channel_num)
         self.update_model_flag = False  # 记录生成自对弈数据采用的网络是否需要更新参数
         self.game_state = GoGameState(size=self.size, mode='train', history_step=(channel_num - 2) // 2)
@@ -40,6 +44,13 @@ class TrainPipeline:
         self.train_step_count = 0
         self.model_path = model_path
         self.opt = paddle.optimizer.Adam(learning_rate=lr, parameters=self.policy_value_net.parameters())
+        # 训练开始先加载一次模型参数
+        try:
+            state_dict = paddle.load(self.model_path)
+            self.policy_value_net.load_dict(state_dict)
+            print('模型参数加载成功！')
+        except:
+            print('模型参数加载失败！')
 
     def collect_self_play_data(self):
         """
@@ -52,8 +63,11 @@ class TrainPipeline:
             # self.data_buffer.append(play_datas)
             self.data_buffer.extend(play_datas)
             if self.update_model_flag:
+                LOCK.acquire()
                 state_dict = paddle.load(self.model_path)
                 self.policy_value_net.set_state_dict(state_dict)
+                LOCK.release()
+                print('加载模型参数一次！')
                 self.update_model_flag = False
 
     def self_play_one_game(self, temp=1.0):
@@ -112,10 +126,14 @@ class TrainPipeline:
         更新网络参数
         :return:
         """
+        print('正在自对弈生成训练数据！')
         while True:
             self.network_update_step()
             if (self.train_step_count + 1) % 1000 == 0:  # 训练1000次，保存更新一次网络参数
+                LOCK.acquire()
                 paddle.save(self.policy_value_net.state_dict(), self.model_path)
+                LOCK.release()
+                print('模型参数更新一次！')
                 # 提示对局数据生成线程要更新参数
                 self.update_model_flag = True
 
@@ -151,7 +169,7 @@ class TrainPipeline:
         # Thread(target=self.collect_self_play_data).start()
         # self.collect_self_play_data()
         # 启动神经网络训练线程
-        Thread(target=self.network_update).start()
+        # Thread(target=self.network_update).start()
         # self.network_update()
         self.collect_self_play_data()
 

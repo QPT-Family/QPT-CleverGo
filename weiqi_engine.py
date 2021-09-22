@@ -26,7 +26,7 @@ MARKCOLOR = (0, 200, 200)  # 最近落子标记颜色
 pygame.init()
 FPSCLOCK = pygame.time.Clock()
 SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
-pygame.display.set_caption('鸽子围棋(DeepGeGeGo)')
+pygame.display.set_caption('鸽子围棋(PigeonGo)')
 # 启动界面绘制
 loading_font = pygame.font.Font('assets/fonts/msyh.ttc', 72)
 loading_text_render = loading_font.render('正在加载...', True, WHITE)
