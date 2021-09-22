@@ -8,7 +8,9 @@ from threading import Thread
 import numpy as np
 from time import sleep
 from mcts import MCTS, evaluate_rollout
-from gym_go import govars
+from GymGo.gym_go import govars
+from policy_value_net import PolicyValueNet
+import paddle
 
 
 class Player:
@@ -52,7 +54,8 @@ class RandomPlayer(Player):
         sleep(1)
         game_state.action_next = self.get_action(game_state)
 
-    def get_action(self, game_state):
+    @staticmethod
+    def get_action(game_state):
         # all_valid_moves = game_state.valid_moves()
         # valid_move_idcs = np.argwhere(all_valid_moves).flatten()
         valid_move_idcs = game_state.get_availables_without_eyes()
@@ -122,3 +125,67 @@ class AlphaGoPlayer(Player):
             return move, move_probs
         else:
             return move
+
+
+class PolicyNetPlayer(Player):
+    def __init__(self, model_path='models/model.pdparams'):
+        super(PolicyNetPlayer, self).__init__()
+
+        self.policy_value_net = PolicyValueNet()
+        state_dict = paddle.load(model_path)
+        self.policy_value_net.set_state_dict(state_dict)
+        self.policy_value_net.eval()
+
+    def step(self, game_state):
+        sleep(1)
+        game_state.action_next = self.get_action(game_state)
+
+    def get_action(self, game_state):
+        valid_move_idcs = game_state.valid_moves()
+        valid_move_idcs = paddle.to_tensor(valid_move_idcs)
+
+        current_state = game_state.get_board_state_for_nn()
+        current_state = paddle.to_tensor([current_state], dtype='float32')
+        probs, _ = self.policy_value_net(current_state)
+        probs = probs[0]
+        probs *= valid_move_idcs
+        probs = probs / paddle.sum(probs)
+
+        action = np.random.choice(range(82), p=probs.numpy())
+        return action
+
+class ValueNetPlayer(Player):
+    def __init__(self, model_path='models/model.pdparams'):
+        super(ValueNetPlayer, self).__init__()
+
+        self.policy_value_net = PolicyValueNet()
+        state_dict = paddle.load(model_path)
+        self.policy_value_net.set_state_dict(state_dict)
+        self.policy_value_net.eval()
+
+    def step(self, game_state):
+        sleep(1)
+        game_state.action_next = self.get_action(game_state)
+
+    def get_action(self, game_state):
+        valid_move_idcs = game_state.valid_moves()
+
+        # 计算所有可落子位置，对手的局面价值，选择对手局面价值最小的落子
+        actions = np.argwhere(valid_move_idcs).flatten()
+        max_value = 1
+        action = 81
+        for simulate_action in actions:
+            simulate_game_state = game_state.get_simulate_game_state()
+            simulate_game_state.step(simulate_action)
+
+            current_state = simulate_game_state.get_board_state_for_nn()
+            current_state = paddle.to_tensor([current_state], dtype='float32')
+
+            _, value = self.policy_value_net(current_state)
+            value = value.numpy().flatten()[0]
+
+            if value < max_value:
+                max_value = value
+                action = simulate_action
+
+        return action

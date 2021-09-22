@@ -11,7 +11,7 @@ sys.path.append('GymGo/')
 from gym_go.envs.go_env import GoEnv
 from gym_go import gogame
 from gym_go import govars
-from player import Player, HumanPlayer, RandomPlayer, MCTSPlayer
+from player import Player, HumanPlayer, RandomPlayer, MCTSPlayer, PolicyNetPlayer, ValueNetPlayer
 
 SPEED = 1  # 用于控制训练时的展示速度
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
@@ -37,7 +37,7 @@ pygame.display.update()
 # PLAYERS_9 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200',
 #              '蒙特卡洛6400', '策略网络', '价值网络', 'Alpha狗', '幼生Alpha狗']
 PLAYERS_9 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200',
-             '蒙特卡洛6400']
+             '蒙特卡洛6400', '策略网络', '价值网络']
 PLAYERS_13_19 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800']
 PLAYERS = PLAYERS_9  # 为了在代码中不用判断PLAYERS_9还是PLAYERS_13_19
 MUSIC_CONTROLS = ['随机播放', '顺序播放', '单曲循环', '音乐关']
@@ -57,11 +57,13 @@ IMAGES = {'black': (
 # 加载后置
 SOUNDS, MUSICS = {}, []
 SOUNDS_ALL = ['Stone', 'Button']
-MUSICS_ALL = ['铜雀赋', '风居住的街道', 'Canon', 'Muyuuka', 'River Flows in You', 'Snow Dream', 'Sundial Dreams',
-              'The Rain', '三个人的时光', '人类的光', '只要为你活一天', '大风起兮云飞扬', '天空之城', '心游太玄', '情动',
-              '我愿意', '故乡的原风景', '李香兰', '流光', '清平乐', '爱江山更爱美人', '琵琶语', '画堂春', '穿越时空的思念',
-              '美丽的神话', '虫儿飞', '那些花儿', '风华绝代', '风吹麦浪', '黄昏的归途', '江南雨', 'Childhood Memories',
-              'Lettre A Elise', 'Star Sky', '夜的钢琴曲5', '梦中的婚礼', '瞬间的永恒', '秋日私语']
+# MUSICS_ALL = ['铜雀赋', '风居住的街道', 'Canon', 'Muyuuka', 'River Flows in You', 'Snow Dream', 'Sundial Dreams',
+#               'The Rain', '三个人的时光', '人类的光', '只要为你活一天', '大风起兮云飞扬', '天空之城', '心游太玄', '情动',
+#               '我愿意', '故乡的原风景', '李香兰', '流光', '清平乐', '爱江山更爱美人', '琵琶语', '画堂春', '穿越时空的思念',
+#               '美丽的神话', '虫儿飞', '那些花儿', '风华绝代', '风吹麦浪', '黄昏的归途', '江南雨', 'Childhood Memories',
+#               'Lettre A Elise', 'Star Sky', '夜的钢琴曲5', '梦中的婚礼', '瞬间的永恒', '秋日私语']
+MUSICS_ALL = ['铜雀赋', '风居住的街道']
+
 # try:
 #     SOUNDS = {'stone': pygame.mixer.Sound('assets/audios/Stone.wav'),
 #               'button': pygame.mixer.Sound('assets/audios/Button.wav')}
@@ -569,6 +571,10 @@ class GoGameState(GoEnv):
             self.black_player = MCTSPlayer(n_playout=3200)
         elif self.black_player_id == 6:  # 蒙特卡洛6400
             self.black_player = MCTSPlayer(n_playout=6400)
+        elif self.black_player_id == 7:  # 策略网络
+            self.black_player = PolicyNetPlayer()
+        elif self.black_player_id == 8:  # 价值网络
+            self.black_player = ValueNetPlayer()
         else:  # 暂未实现
             self.black_player = Player()
         self.black_player.allow = pre_player_allow
@@ -597,6 +603,10 @@ class GoGameState(GoEnv):
             self.white_player = MCTSPlayer(n_playout=3200)
         elif self.white_player_id == 6:  # 蒙特卡洛6400
             self.white_player = MCTSPlayer(n_playout=6400)
+        elif self.white_player_id == 7:  # 策略网络
+            self.white_player = PolicyNetPlayer()
+        elif self.white_player_id == 8:  # 价值网络
+            self.white_player = ValueNetPlayer()
         else:  # 暂未实现
             self.white_player = Player()
         self.white_player.allow = pre_player_allow
