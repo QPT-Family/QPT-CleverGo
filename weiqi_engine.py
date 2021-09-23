@@ -11,7 +11,7 @@ sys.path.append('GymGo/')
 from gym_go.envs.go_env import GoEnv
 from gym_go import gogame
 from gym_go import govars
-from player import Player, HumanPlayer, RandomPlayer, MCTSPlayer, PolicyNetPlayer, ValueNetPlayer
+from player import Player, HumanPlayer, RandomPlayer, MCTSPlayer, PolicyNetPlayer, ValueNetPlayer, AlphaGoPlayer
 
 SPEED = 1  # 用于控制训练时的展示速度
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
@@ -37,7 +37,7 @@ pygame.display.update()
 # PLAYERS_9 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200',
 #              '蒙特卡洛6400', '策略网络', '价值网络', 'Alpha狗', '幼生Alpha狗']
 PLAYERS_9 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200',
-             '蒙特卡洛6400', '策略网络', '价值网络']
+             '蒙特卡洛6400', '策略网络', '价值网络', '阿尔法狗', '幼生阿尔法狗']
 PLAYERS_13_19 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800']
 PLAYERS = PLAYERS_9  # 为了在代码中不用判断PLAYERS_9还是PLAYERS_13_19
 MUSIC_CONTROLS = ['随机播放', '顺序播放', '单曲循环', '音乐关']
@@ -575,6 +575,10 @@ class GoGameState(GoEnv):
             self.black_player = PolicyNetPlayer()
         elif self.black_player_id == 8:  # 价值网络
             self.black_player = ValueNetPlayer()
+        elif self.black_player_id == 9:  # 阿尔法狗
+            self.black_player = AlphaGoPlayer(model_path='models/model.pdparams')
+        elif self.black_player_id == 10:  # 幼生阿尔法狗（与阿尔法狗只有参数路径不同）
+            self.black_player = AlphaGoPlayer(model_path='models/model.pdparams')  # 暂时用相同的参数
         else:  # 暂未实现
             self.black_player = Player()
         self.black_player.allow = pre_player_allow
@@ -607,6 +611,10 @@ class GoGameState(GoEnv):
             self.white_player = PolicyNetPlayer()
         elif self.white_player_id == 8:  # 价值网络
             self.white_player = ValueNetPlayer()
+        elif self.white_player_id == 9:  # 阿尔法狗
+            self.white_player = AlphaGoPlayer(model_path='models/model.pdparams')
+        elif self.white_player_id == 10:  # 幼生阿尔法狗（与阿尔法狗只有参数路径不同）
+            self.white_player = AlphaGoPlayer(model_path='models/model.pdparams')  # 暂时用相同的参数
         else:  # 暂未实现
             self.white_player = Player()
         self.white_player.allow = pre_player_allow

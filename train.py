@@ -35,11 +35,11 @@ class TrainPipeline:
         self.c_puct = c_puct  # 蒙特卡洛树搜索中计算上置信限的参数
         self.channel_num = channel_num  # 棋盘状态通道数 = (规定历史步数*2 + 2)  （黑白棋子分布、当前落子方、上一步落子位置）
         # (应该初始化两个网络，一个为train状态，一个为eval状态。暂时不用更新)
-        self.policy_value_net = PolicyValueNet(board_size=self.size, input_channels=self.channel_num)
+        # self.policy_value_net = PolicyValueNet(board_size=self.size, input_channels=self.channel_num)
         self.update_model_flag = False  # 记录生成自对弈数据采用的网络是否需要更新参数
         self.game_state = GoGameState(size=self.size, mode='train', history_step=(channel_num - 2) // 2)
-        self.player = AlphaGoPlayer(self.policy_value_net.policy_value_fn, c_puct=c_puct,
-                                    n_playout=n_playout, is_selfplay=True)
+        self.player = AlphaGoPlayer(model_path, c_puct=c_puct, n_playout=n_playout, is_selfplay=True)
+        self.policy_value_net = self.player.policy_value_net
         self.data_buffer = deque(maxlen=BUFFER_SIZE)
         self.train_step_count = 0
         self.model_path = model_path
@@ -169,11 +169,11 @@ class TrainPipeline:
         # Thread(target=self.collect_self_play_data).start()
         # self.collect_self_play_data()
         # 启动神经网络训练线程
-        # Thread(target=self.network_update).start()
+        Thread(target=self.network_update).start()
         # self.network_update()
         self.collect_self_play_data()
 
 
 if __name__ == '__main__':
-    training_pipeline = TrainPipeline(n_playout=100)
+    training_pipeline = TrainPipeline(n_playout=200)
     training_pipeline.run()

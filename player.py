@@ -11,6 +11,7 @@ from mcts import MCTS, evaluate_rollout
 from GymGo.gym_go import govars
 from policy_value_net import PolicyValueNet
 import paddle
+import os
 
 
 class Player:
@@ -97,15 +98,20 @@ class MCTSPlayer(Player):
 
 
 class AlphaGoPlayer(Player):
-    def __init__(self, policy_value_function, c_puct=5, n_playout=400, is_selfplay=False):
-        super().__init__()
-        self.mcts = MCTS(policy_value_function, c_puct, n_playout)
+    def __init__(self, model_path='models/pdparams', c_puct=5, n_playout=400, is_selfplay=False):
+        super(AlphaGoPlayer, self).__init__()
+        self.policy_value_net = PolicyValueNet()
+        state_dict = paddle.load(model_path)
+        self.policy_value_net.set_state_dict(state_dict)
+        self.policy_value_net.train() if is_selfplay else self.policy_value_net.eval()
+
+        self.mcts = MCTS(self.policy_value_net.policy_value_fn, c_puct, n_playout)
         self.is_selfplay = is_selfplay
 
     def reset_player(self):
         self.mcts.update_with_move(-1)
 
-    def setp(self, game_state):
+    def step(self, game_state):
         game_state.action_next = self.get_action(game_state)
         game_state.draw_speed(0, 1)
 
@@ -153,6 +159,7 @@ class PolicyNetPlayer(Player):
 
         action = np.random.choice(range(82), p=probs.numpy())
         return action
+
 
 class ValueNetPlayer(Player):
     def __init__(self, model_path='models/model.pdparams'):

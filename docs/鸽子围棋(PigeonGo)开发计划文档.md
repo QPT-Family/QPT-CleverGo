@@ -9,8 +9,8 @@
 ## 1. 项目基础开发：当前项目-->V1.0
 完善PigeonGo项目基本核心功能
 - Pygame信息展示控件封装
-- Tensorflow框架转PaddlePaddle框架
-- 策略网络和价值网络分离
+- ~~Tensorflow框架转PaddlePaddle框架~~
+- ~~策略网络和价值网络分离(网络单独定义，与训练等操作分离)~~
 - 训练方法集成，实现点击按钮训练阿尔法狗
 - 实现策略网络、价值网络，训练好的阿尔法狗添加至可选玩家
 
@@ -20,7 +20,7 @@
 在原始GymGo开源项目上封装一层，定义为goengine.py，该文件与GymGo项目直接进行交互，并依据自己项目情况，定义相关后端方法，项目前端只与该文件中相关方法进行交互。
 ![项目架构图](https://img-blog.csdnimg.cn/e87f822779b04a2c9cc3f13e2b226767.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBARGVlcEdlR2U=,size_20,color_FFFFFF,t_70,g_se,x_16#pic_center)
 - Pygame控件实现逻辑优化
-按钮控件及显示屏控件继承自一个控件基类，相关控件定义时候直接注册到控件状态更新器，可以在程序主循环中通过一行代码，如controls.update()实现所有控件的状态更新。
+按钮控件及显示屏控件继承自一个控件基类，相关控件定义时候直接注册到控件状态更新器，可以在程序主循环中通过一行代码，如`controls.update(event)`实现所有控件的状态更新。
 ![控件系统架构图](https://img-blog.csdnimg.cn/c2e4b12120bc4d5d86ba29d8dc08a1c4.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBARGVlcEdlR2U=,size_19,color_FFFFFF,t_70,g_se,x_16#pic_center)
 
 - 程序多线程处理逻辑优化
