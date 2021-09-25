@@ -6,7 +6,6 @@
 
 import sys
 import threading
-
 sys.path.append('GymGo/')
 from collections import deque
 from policy_value_net import PolicyValueNet
@@ -150,27 +149,29 @@ class TrainPipeline:
             winner_batch = paddle.to_tensor(np.array([data[2] for data in mini_batch]), dtype='float32')
 
             act_probs, value = self.policy_value_net(state_batch)
-            cs_loss = paddle.nn.functional.cross_entropy(act_probs, mcts_probs_batch,
+            ce_loss = paddle.nn.functional.cross_entropy(act_probs, mcts_probs_batch,
                                                          soft_label=True, use_softmax=False)
             mse_loss = paddle.nn.functional.mse_loss(value, winner_batch)
-            loss = cs_loss + mse_loss
+            loss = ce_loss + mse_loss
 
             loss.backward()
+            params = self.policy_value_net.parameters()
+            grad_sum = np.sum([np.sum(pms.grad.numpy()) for pms in params])
             self.opt.step()
             self.opt.clear_grad()
 
-            print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                  'STEP', self.train_step_count, 'LOSS', loss.numpy())
+            print('{} Step:{} Loss:{} CELoss:{} MSELoss:{} GradTotal:{}'.format(
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'), self.train_step_count, loss.numpy(), ce_loss.numpy(),
+                mse_loss.numpy(), grad_sum))
         else:
             time.sleep(60)
 
     def run(self):
         # 启动生成对局数据线程
         # Thread(target=self.collect_self_play_data).start()
-        # self.collect_self_play_data()
+        # self.network_update()
         # 启动神经网络训练线程
         Thread(target=self.network_update).start()
-        # self.network_update()
         self.collect_self_play_data()
 
 

@@ -101,8 +101,10 @@ class AlphaGoPlayer(Player):
     def __init__(self, model_path='models/pdparams', c_puct=5, n_playout=400, is_selfplay=False):
         super(AlphaGoPlayer, self).__init__()
         self.policy_value_net = PolicyValueNet()
-        state_dict = paddle.load(model_path)
-        self.policy_value_net.set_state_dict(state_dict)
+
+        if os.path.exists(model_path):
+            state_dict = paddle.load(model_path)
+            self.policy_value_net.set_state_dict(state_dict)
         self.policy_value_net.train() if is_selfplay else self.policy_value_net.eval()
 
         self.mcts = MCTS(self.policy_value_net.policy_value_fn, c_puct, n_playout)
