@@ -1,0 +1,5 @@
+.idea/
+*.egg-info/
+__pycache__/
+.ipynb_checkpoints/
+.vscode/

@@ -21,15 +21,21 @@ class GoEnv(gym.Env):
     govars = govars
     gogame = gogame
 
-    def __init__(self, size, komi=0, reward_method='real'):
+    def __init__(self, size, komi=0, reward_method='real', history_step=4):
         '''
         @param reward_method: either 'heuristic' or 'real'
         heuristic: gives # black pieces - # white pieces.
         real: gives 0 for in-game move, 1 for winning, -1 for losing,
             0 for draw, all from black player's perspective
+        step_size: 用于控制获得神经网络的输入历史步数
         '''
         self.size = size
         self.komi = komi
+        self.history_step = history_step
+        # 给神经网络的输入采用：双方过去history_step步+一个表示当前落子方的平面+一个表示上一步落子位置的平面
+        # 前history_step个平面表示黑方的棋子分布，接下来history_step个平面表示白方的棋子分布，（有棋子位置为1）
+        # 接下来一个平面表示当前落子方（黑0白1），接下来一个平面表示上一步落子位置（落子位置为1,其余为0，上一手pass则全0）
+        self.board_state_for_nn = np.zeros((self.history_step * 2 + 2, self.size, self.size))
         self.state_ = gogame.init_state(size)
         self.reward_method = RewardMethod(reward_method)
         self.observation_space = gym.spaces.Box(np.float32(0), np.float32(govars.NUM_CHNLS),
@@ -43,6 +49,8 @@ class GoEnv(gym.Env):
         done, return state
         '''
         self.state_ = gogame.init_state(self.size)
+        # 新增，将当前状态置为空
+        self.board_state_for_nn = np.zeros((self.history_step * 2 + 2, self.size, self.size))
         self.done = False
         return np.copy(self.state_)
 
@@ -58,13 +66,47 @@ class GoEnv(gym.Env):
             action = self.size * action[0] + action[1]
         elif action is None:
             action = self.size ** 2
-
         self.state_ = gogame.next_state(self.state_, action, canonical=False)
+        # 更新board_state_for_nn
+        self.update_board_state_for_nn(action)
         self.done = gogame.game_ended(self.state_)
         return np.copy(self.state_), self.reward(), self.done, self.info()
 
+    def get_board_state_for_nn(self):
+        return np.copy(self.board_state_for_nn)
+
+    def update_board_state_for_nn(self, action):
+        """该更新放在state_更新后面"""
+        for i in range(self.history_step - 1):
+            self.board_state_for_nn[i] = np.copy(self.board_state_for_nn[i + 1])
+            self.board_state_for_nn[i + self.history_step] = np.copy(self.board_state_for_nn[i + self.history_step + 1])
+        self.board_state_for_nn[self.history_step - 1] = np.copy(self.state_[govars.BLACK])
+        self.board_state_for_nn[self.history_step * 2 - 1] = np.copy(self.state_[govars.WHITE])
+        # 更新当前落子方
+        self.board_state_for_nn[-2] = np.copy(self.state_[govars.TURN_CHNL])
+        # 更新上一步落子位置
+        self.board_state_for_nn[-1] = np.zeros((self.size, self.size))
+        if action is not None and action != self.size ** 2:  # 上一步不为pass
+            position = action // self.size, action % self.size  # 将action转换成position
+            self.board_state_for_nn[-1, position[0], position[1]] = 1
+
     def game_ended(self):
         return self.done
+
+    def game_end(self):
+        """
+        返回一个boolean值，表示游戏是否结束，同时返回一个winner，如果没结束，则winner == -1
+        :return:
+        """
+        if not self.done:
+            return self.done, -1
+        else:
+            winner = self.winning()
+            if winner == 1:  # 黑胜
+                winner = govars.BLACK
+            elif winner == -1:  # 白胜
+                winner = govars.WHITE
+            return self.done, winner
 
     def turn(self):
         return gogame.turn(self.state_)
@@ -74,6 +116,16 @@ class GoEnv(gym.Env):
 
     def valid_moves(self):
         return gogame.valid_moves(self.state_)
+
+    def get_availables(self):
+        """获得所有有效的落子位置"""
+        valid_moves = self.valid_moves()
+        return np.argwhere(valid_moves).flatten()
+
+    def get_availables_without_eyes(self):
+        """获得不填自己真眼的有效落子位置"""
+        valid_moves = gogame.valid_moves_without_eyes(self.state_, self.turn())
+        return np.argwhere(valid_moves).flatten()
 
     def uniform_random_action(self):
         valid_moves = self.valid_moves()

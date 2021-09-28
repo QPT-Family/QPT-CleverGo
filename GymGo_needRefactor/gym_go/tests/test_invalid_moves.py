@@ -239,5 +239,6 @@ class TestGoEnvInvalidMoves(unittest.TestCase):
             self.env.step(final_move)
 
 
+
 if __name__ == '__main__':
     unittest.main()

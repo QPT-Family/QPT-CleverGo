@@ -11,17 +11,11 @@ The state of the game is a numpy array
 * Shape [NUM_CHNLS, SIZE, SIZE]
 
 0 - Black pieces
-CHANNEL[0]: 黑棋棋子分布。有黑棋棋子位置为1，否则为0；
 1 - White pieces
-CHANNEL[1]: 白棋棋子分布。有白棋棋子位置为1，否则为0；
 2 - Turn (0 - black, 1 - white)
-CHANNEL[2]: 下一步落子方，一个全0或全1的矩阵。0：黑方，1：白方；
 3 - Invalid moves (including ko-protection)
-CHANNEL[3]: 下一步的落子无效位置。无效位置为1，其余为0；
 4 - Previous move was a pass
-CHANNEL[4]: 上一步是否为PASS，一个全0或全1的矩阵。0：不是PASS，1：是PASS；
 5 - Game over
-CHANNEL[5]: 上一步落子后，游戏是否结束，一个全0或全1的矩阵。0：未结束，1：已结束。
 """
 
 
@@ -42,13 +36,13 @@ def next_state(state, action1d, canonical=False):
     state = np.copy(state)
 
     # Initialize basic variables
-    board_shape = state.shape[1:]
-    pass_idx = np.prod(board_shape)
-    passed = action1d == pass_idx
-    action2d = action1d // board_shape[0], action1d % board_shape[1]
+    board_shape = state.shape[1:]  # state.shape为(通道数, 棋盘高度, 棋盘宽度)
+    pass_idx = np.prod(board_shape)  # np.prod()将参数内所有元素连乘，pass_idx："pass一手"对应的id
+    passed = action1d == pass_idx  # 如果action id等于pass_idx，则passed为True
+    action2d = action1d // board_shape[0], action1d % board_shape[1]  # 将action1d转换成action2d
 
-    player = turn(state)
-    previously_passed = prev_player_passed(state)
+    player = turn(state)  # 获取当前落子方
+    previously_passed = prev_player_passed(state)  # 获取上一手是否为pass
     ko_protect = None
 
     if passed:
@@ -67,11 +61,15 @@ def next_state(state, action1d, canonical=False):
         # Add piece
         state[player, action2d[0], action2d[1]] = 1
 
-        # Get adjacent location and check whether the piece will be surrounded by opponent's piece
+        # Get adjacent location and check whether the piece will be surrounded by any piece
+        # 这里有一个严重的BUG，在判断是否为劫时用到了surrounded
+        # 程序中surrounded表示指定位置是否被棋子包围
+        # 实际围棋规则中应该指是否被对方的棋子包围
         adj_locs, surrounded = state_utils.adj_data(state, action2d, player)
 
         # Update pieces
         killed_groups = state_utils.update_pieces(state, adj_locs, player)
+        # 更新棋盘棋子分布矩阵，并返回各组被杀死的棋子列表
 
         # If only killed one group, and that one group was one piece, and piece set is surrounded,
         # activate ko protection
@@ -84,11 +82,11 @@ def next_state(state, action1d, canonical=False):
     state[govars.INVD_CHNL] = state_utils.compute_invalid_moves(state, player, ko_protect)
 
     # Switch turn
-    state_utils.set_turn(state)
+    state_utils.set_turn(state)  # 转换下一手落子方
 
-    if canonical:
+    if canonical:  # 该标记是选择是否始终以黑棋视角看待当前游戏局面
         # Set canonical form
-        state = canonical_form(state)
+        state = canonical_form(state)  # 该函数将黑白棋子分布对换，并更改下一手落子方为黑棋
 
     return state
 
@@ -98,26 +96,30 @@ def batch_next_states(batch_states, batch_action1d, canonical=False):
     batch_states = np.copy(batch_states)
 
     # Initialize basic variables
-    board_shape = batch_states.shape[2:]
-    pass_idx = np.prod(board_shape)
-    batch_pass = np.nonzero(batch_action1d == pass_idx)
-    batch_non_pass = np.nonzero(batch_action1d != pass_idx)[0]
-    batch_prev_passed = batch_prev_player_passed(batch_states)
-    batch_game_ended = np.nonzero(batch_prev_passed & (batch_action1d == pass_idx))
+    board_shape = batch_states.shape[2:]  # 获取棋盘形状
+    pass_idx = np.prod(board_shape)  # pass一手对应的动作id
+    batch_pass = np.nonzero(batch_action1d == pass_idx)  # batch_pass记录多局游戏中哪些局的动作为 pass一手
+    # batch_pass形式如：(array([2, 5], dtype=int64),)
+    batch_non_pass = np.nonzero(batch_action1d != pass_idx)[0]  # 获得哪些对局的动作不是pass
+    # batch_non_pass形式如：[0 1 3 4]
+    batch_prev_passed = batch_prev_player_passed(batch_states)  # 检查各局游戏上一手是否为pass
+    batch_game_ended = np.nonzero(batch_prev_passed & (batch_action1d == pass_idx))  # 上一手为pass，这一手也是pass，则游戏结束
     batch_action2d = np.array([batch_action1d[batch_non_pass] // board_shape[0],
                                batch_action1d[batch_non_pass] % board_shape[1]]).T
+    # batch_action2d在.T之前是一个shape为(2, batch_size)的二维数组，第一行代表所有非pass动作的坐标行号，
+    # 第二行代表所有非pass动作列号。因此需要.T进行转置
 
-    batch_players = batch_turn(batch_states)
-    batch_non_pass_players = batch_players[batch_non_pass]
+    batch_players = batch_turn(batch_states)  # 获得所有对局当前落子方
+    batch_non_pass_players = batch_players[batch_non_pass]  # 获得所有动作不是pass的当前落子方
     batch_ko_protect = np.empty(len(batch_states), dtype=object)
 
     # Pass moves
-    batch_states[batch_pass, govars.PASS_CHNL] = 1
+    batch_states[batch_pass, govars.PASS_CHNL] = 1  # 将动作为pass的对局pass通道值置为1
     # Game ended
-    batch_states[batch_game_ended, govars.DONE_CHNL] = 1
+    batch_states[batch_game_ended, govars.DONE_CHNL] = 1  # 将上一手和本手动作均为pass的done通道值置为1
 
     # Non-pass moves
-    batch_states[batch_non_pass, govars.PASS_CHNL] = 0
+    batch_states[batch_non_pass, govars.PASS_CHNL] = 0  # 将动作不为pass的对局pass通道值置为0
 
     # Assert all non-pass moves are valid
     assert (batch_states[batch_non_pass, govars.INVD_CHNL, batch_action2d[:, 0], batch_action2d[:, 1]] == 0).all()
@@ -125,7 +127,7 @@ def batch_next_states(batch_states, batch_action1d, canonical=False):
     # Add piece
     batch_states[batch_non_pass, batch_non_pass_players, batch_action2d[:, 0], batch_action2d[:, 1]] = 1
 
-    # Get adjacent location and check whether the piece will be surrounded by opponent's piece
+    # Get adjacent location and check whether the piece will be surrounded by any piece
     batch_adj_locs, batch_surrounded = state_utils.batch_adj_data(batch_states[batch_non_pass], batch_action2d,
                                                                   batch_non_pass_players)
 
@@ -158,13 +160,21 @@ def batch_next_states(batch_states, batch_action1d, canonical=False):
 
 def invalid_moves(state):
     # return a fixed size binary vector
-    if game_ended(state):
-        return np.zeros(action_size(state))
+    if game_ended(state):  # 如果游戏已经结束
+        return np.zeros(action_size(state))  # 游戏的动作数量为：棋盘交叉点数+1
     return np.append(state[govars.INVD_CHNL].flatten(), 0)
 
 
 def valid_moves(state):
     return 1 - invalid_moves(state)
+
+
+def valid_moves_without_eyes(state, player):
+    valid_moves_with_eyes = 1 - state[govars.INVD_CHNL]
+    eyes = state_utils.get_eyes(state, player) * valid_moves_with_eyes  # 排除掉自杀的位置
+    if game_ended(state):
+        return np.ones(action_size(state))
+    return np.append((valid_moves_with_eyes - eyes).flatten(), 1)
 
 
 def batch_invalid_moves(batch_state):
@@ -208,6 +218,9 @@ def prev_player_passed(state):
 
 
 def batch_prev_player_passed(batch_state):
+    # batch_state[:, govars.PASS_CHNL]表示batch_state所有0维元素的第govars.PASS_CHNL子元素
+    # 即batch_state中所有batch的pass通道
+    # np.max( , axis=(1, 2))返回所有第1、2维度的值中的最大值，返回一个.shape[0]维度的相同的数组
     return np.max(batch_state[:, govars.PASS_CHNL], axis=(1, 2)) == 1
 
 
@@ -320,10 +333,10 @@ def canonical_form(state):
     state = np.copy(state)
     if turn(state) == govars.WHITE:
         channels = np.arange(govars.NUM_CHNLS)
-        channels[govars.BLACK] = govars.WHITE
+        channels[govars.BLACK] = govars.WHITE  # 黑白棋子分布对换
         channels[govars.WHITE] = govars.BLACK
-        state = state[channels]
-        state_utils.set_turn(state)
+        state = state[channels]  # 状态矩阵通道顺序更改
+        state_utils.set_turn(state)  # 下一手落子方对换
     return state
 
 
