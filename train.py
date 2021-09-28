@@ -10,7 +10,7 @@ sys.path.append('GymGo/')
 from collections import deque
 from policy_value_net import PolicyValueNet
 from player import MCTSPlayer, AlphaGoPlayer
-from weiqi_engine import GoGameState
+# from weiqi_engine import GoGameState
 import numpy as np
 import random
 from datetime import datetime
@@ -25,7 +25,7 @@ LOCK = threading.Lock()
 
 
 class TrainPipeline:
-    def __init__(self, size=9, lr=1e-2, temp=1.0, n_playout=100, c_puct=5, channel_num=10,
+    def __init__(self, game_state, size=9, lr=1e-2, temp=1.0, n_playout=100, c_puct=5, channel_num=10,
                  model_path='models/model.pdparams'):
         self.size = size  # 棋盘大小
         self.lr = lr  # 学习率
@@ -36,7 +36,8 @@ class TrainPipeline:
         # (应该初始化两个网络，一个为train状态，一个为eval状态。暂时不用更新)
         # self.policy_value_net = PolicyValueNet(board_size=self.size, input_channels=self.channel_num)
         self.update_model_flag = False  # 记录生成自对弈数据采用的网络是否需要更新参数
-        self.game_state = GoGameState(size=self.size, mode='train', history_step=(channel_num - 2) // 2)
+        # self.game_state = GoGameState(size=self.size, mode='train', history_step=(channel_num - 2) // 2)
+        self.game_state = game_state
         self.player = AlphaGoPlayer(model_path, c_puct=c_puct, n_playout=n_playout, is_selfplay=True)
         self.policy_value_net = self.player.policy_value_net
         self.data_buffer = deque(maxlen=BUFFER_SIZE)

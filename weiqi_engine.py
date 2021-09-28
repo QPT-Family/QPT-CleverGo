@@ -13,6 +13,7 @@ from GymGo.gym_go import gogame
 from GymGo.gym_go import govars
 from player import Player, HumanPlayer, RandomPlayer, MCTSPlayer, PolicyNetPlayer, ValueNetPlayer, AlphaGoPlayer
 from pgtools.button import Button
+from train import TrainPipeline
 
 SPEED = 1  # 用于控制训练时的展示速度
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
@@ -439,13 +440,12 @@ class GoGameState(GoEnv):
                 button_texts = ['开始游戏', '弃一手', '悔棋', '重新开始', ('十三' if self.size == 9 else '九') + '路棋',
                                 ('十三' if self.size == 19 else '十九') + '路棋', '训练幼生Alpha狗', '退出游戏']
                 call_functions = [self.fct_for_play_game, self.fct_for_pass, self.fct_for_regret, self.fct_for_restart,
-                                  self.fct_for_new_game_1, self.fct_for_new_game_2, self.fct_for_exit, self.fct_for_exit]
+                                  self.fct_for_new_game_1, self.fct_for_new_game_2, self.fct_for_train_alphago, self.fct_for_exit]
                 begin_height = self.button_area.get_height() / 20
                 return self.draw_button(button_texts, call_functions, self.button_area, begin_height,
                                         self.button_margin, self.button_area_base_coordinate, size=(120, 27))
             elif self.button_area_state == 'train_AlphaGo':  # 训练幼生阿尔法狗状态
                 pass
-
 
     def draw_over(self):
         # 绘制游戏结束画面
@@ -759,6 +759,13 @@ class GoGameState(GoEnv):
         self.info_button_and_area = self.draw_info()
         self.button_and_area = self.draw_button_area()
 
+    def fct_for_train_alphago(self):
+        # 点击训练幼生阿尔法狗按钮，进入训练界面
+        SOUNDS['button'].play()
+        self.__init__(self.size, komi=self.komi, reward_method=self.reward_method, mode=self.mode)
+        self.trainer = TrainPipeline(self, n_playout=100, model_path='model2.pdparams')
+        self.trainer.run()
+
     def fct_for_exit(self):
         # 当退出游戏按钮被点击
         sys.exit()
@@ -774,9 +781,8 @@ class GoGameState(GoEnv):
             print("音效系统加载失败！")
 
 
-
 if __name__ == '__main__':
-    go_game = GoGameState(mode='train')
+    go_game = GoGameState(mode='play')
     while True:
         for event in pygame.event.get():
             pass
