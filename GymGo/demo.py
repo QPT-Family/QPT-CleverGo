@@ -16,12 +16,9 @@ done = False
 while not done:
     action = go_env.render(mode="human")
     state, reward, done, info = go_env.step(action)
-    print(state)
-    print("========================")
+
     if go_env.game_ended():
         break
     action = go_env.uniform_random_action()
     state, reward, done, info = go_env.step(action)
-    print(state)
-    print("========================")
 go_env.render(mode="human")

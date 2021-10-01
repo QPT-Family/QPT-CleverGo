@@ -2,7 +2,7 @@ import numpy as np
 from scipy import ndimage
 from scipy.ndimage import measurements
 
-from gym_go import govars
+from GymGo.gym_go import govars
 
 group_struct = np.array([[[0, 0, 0],
                           [0, 0, 0],
@@ -25,7 +25,7 @@ def compute_invalid_moves(state, player, ko_protect=None):
     """
     Updates invalid moves in the OPPONENT's perspective
     1.) Opponent cannot move at a location
-        i.) If it's occupied
+        i.) If it's occupied（被占领的）
         i.) If it's protected by ko
     2.) Opponent can move at a location
         i.) If it can kill
@@ -37,7 +37,9 @@ def compute_invalid_moves(state, player, ko_protect=None):
     """
 
     # All pieces and empty spaces
+    # 棋盘所有有棋子的分布矩阵，有棋子的位置为1
     all_pieces = np.sum(state[[govars.BLACK, govars.WHITE]], axis=0)
+    # 棋盘上所有空交叉点的分布矩阵，空交叉点位置为1
     empties = 1 - all_pieces
 
     # Setup invalid and valid arrays
@@ -45,7 +47,9 @@ def compute_invalid_moves(state, player, ko_protect=None):
     definite_valids_array = np.zeros(state.shape[1:])
 
     # Get all groups
+    # 上一步落子方各块棋子分布矩阵，及棋子块数
     all_own_groups, num_own_groups = measurements.label(state[player])
+    # 下一步落子方各块棋子分布矩阵，及棋子块数
     all_opp_groups, num_opp_groups = measurements.label(state[1 - player])
     expanded_own_groups = np.zeros((num_own_groups, *state.shape[1:]))
     expanded_opp_groups = np.zeros((num_opp_groups, *state.shape[1:]))
@@ -58,9 +62,14 @@ def compute_invalid_moves(state, player, ko_protect=None):
         expanded_opp_groups[i] = all_opp_groups == (i + 1)
 
     # Get all liberties in the expanded form
+    # 计算每一块棋子的气分布矩阵
+    # 其中np.newaxis == None，matrix[None]意思是在第0维增加一个维度
+    # all_own_liberties和all_opp_liberties均是三维矩阵，代表每块棋子的气的分布
     all_own_liberties = empties[np.newaxis] * ndimage.binary_dilation(expanded_own_groups, surround_struct[np.newaxis])
     all_opp_liberties = empties[np.newaxis] * ndimage.binary_dilation(expanded_opp_groups, surround_struct[np.newaxis])
 
+    # all_own_liberties和all_opp_liberties均是三维矩阵， np.sum( , axis=(1,2))针对每块棋子计算其气数
+    # own_liberty_counts和opp_liberty_counts均是一维数组，每个元素代表每块棋的气
     own_liberty_counts = np.sum(all_own_liberties, axis=(1, 2))
     opp_liberty_counts = np.sum(all_opp_liberties, axis=(1, 2))
 

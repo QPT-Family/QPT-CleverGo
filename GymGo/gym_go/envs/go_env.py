@@ -3,7 +3,7 @@ from enum import Enum
 import gym
 import numpy as np
 
-from gym_go import govars, rendering, gogame
+from GymGo.gym_go import govars, rendering, gogame
 
 
 class RewardMethod(Enum):

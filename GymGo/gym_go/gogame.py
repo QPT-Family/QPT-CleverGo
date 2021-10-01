@@ -2,7 +2,7 @@ import numpy as np
 from scipy import ndimage
 from sklearn import preprocessing
 
-from gym_go import state_utils, govars
+from GymGo.gym_go import state_utils, govars
 
 """
 The state of the game is a numpy array
@@ -42,35 +42,40 @@ def next_state(state, action1d, canonical=False):
     state = np.copy(state)
 
     # Initialize basic variables
-    board_shape = state.shape[1:]
-    pass_idx = np.prod(board_shape)
-    passed = action1d == pass_idx
-    action2d = action1d // board_shape[0], action1d % board_shape[1]
+    board_shape = state.shape[1:]  # state.shape为(通道数, 棋盘高度, 棋盘宽度)
+    pass_idx = np.prod(board_shape)  # np.prod()将参数内所有元素连乘，pass_idx："pass"对应的id
+    passed = action1d == pass_idx  # 如果action id等于pass_idx，则passed为True
+    action2d = action1d // board_shape[0], action1d % board_shape[1]  # 将action1d转换成action2d
 
-    player = turn(state)
-    previously_passed = prev_player_passed(state)
+    player = turn(state)  # 获取下一步落子方
+    previously_passed = prev_player_passed(state)  # 获取上一步是否为pass
     ko_protect = None
 
     if passed:
         # We passed
+        # 如果下一步为pass，则将next_state中PASS_CHNL矩阵置为全1矩阵
         state[govars.PASS_CHNL] = 1
         if previously_passed:
             # Game ended
+            # 如果上一步也为pass，则游戏结束【双方连续各pass，则游戏结束】
+            # 将next_state中DONE_CHNL矩阵置为全1矩阵
             state[govars.DONE_CHNL] = 1
     else:
         # Move was not pass
         state[govars.PASS_CHNL] = 0
 
-        # Assert move is valid
+        # Assert move is valid    检查落子是否有效【state中INVD_CHNL对应位置为0】
         assert state[govars.INVD_CHNL, action2d[0], action2d[1]] == 0, ("Invalid move", action2d)
 
         # Add piece
         state[player, action2d[0], action2d[1]] = 1
 
         # Get adjacent location and check whether the piece will be surrounded by opponent's piece
+        # 获取下一步落子位置的相邻位置（仅在棋盘内）、下一步落子位置是否被下一步落子方对手的棋子包围
         adj_locs, surrounded = state_utils.adj_data(state, action2d, player)
 
         # Update pieces
+        # 更新棋盘黑白棋子分布矩阵，并返回各组被杀死的棋子列表
         killed_groups = state_utils.update_pieces(state, adj_locs, player)
 
         # If only killed one group, and that one group was one piece, and piece set is surrounded,
@@ -84,10 +89,13 @@ def next_state(state, action1d, canonical=False):
     state[govars.INVD_CHNL] = state_utils.compute_invalid_moves(state, player, ko_protect)
 
     # Switch turn
+    # 设置下一步落子方
     state_utils.set_turn(state)
 
+    # 该标记是选择是否始终以黑棋视角看待当前游戏局面
     if canonical:
         # Set canonical form
+        # 该函数将黑白棋子分布对换，并更改下一手落子方为黑棋
         state = canonical_form(state)
 
     return state
@@ -106,6 +114,8 @@ def batch_next_states(batch_states, batch_action1d, canonical=False):
     batch_game_ended = np.nonzero(batch_prev_passed & (batch_action1d == pass_idx))
     batch_action2d = np.array([batch_action1d[batch_non_pass] // board_shape[0],
                                batch_action1d[batch_non_pass] % board_shape[1]]).T
+    # batch_action2d在.T之前是一个shape为(2, batch_size)的二维数组，第一行代表所有非pass动作的坐标行号，
+    # 第二行代表所有非pass动作列号。因此需要.T进行转置
 
     batch_players = batch_turn(batch_states)
     batch_non_pass_players = batch_players[batch_non_pass]
