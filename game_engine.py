@@ -7,7 +7,9 @@
 import pygame
 import numpy as np
 import sys
-from pgtools.button import Button
+import go_engine
+from go_engine import GoEngine
+from pgutils.pgcontrols.button import Button
 
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
 SCREENWIDTH = int(SCREEN_SIZE * 600)  # 屏幕宽度
@@ -18,9 +20,12 @@ BLACK = (0, 0, 0)  # 黑色
 WHITE = (255, 255, 255)  # 白色
 MARKCOLOR = (0, 200, 200)  # 最近落子标记颜色
 
-pygame.init()  # pygame初始化
-SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))  # 创建游戏主屏幕
-pygame.display.set_caption('鸽子围棋(PigeonGo)')  # 设置游戏名称
+# pygame初始化
+pygame.init()
+# 创建游戏主屏幕
+SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
+# 设置游戏名称
+pygame.display.set_caption('鸽子围棋(PigeonGo)')
 # 启动界面绘制启动信息
 loading_font = pygame.font.Font('assets/fonts/msyh.ttc', 72)
 loading_text_render = loading_font.render('正在加载...', True, WHITE)
@@ -84,6 +89,11 @@ class GameEngine:
         self.state_format = state_format
         self.record_last = record_last
 
+        self.game_state = GoEngine(board_size=board_size, komi=komi, record_step=record_step,
+                                   state_format=state_format, record_last=record_last)
+        # 控制游戏开始
+        self.play = False
+
         # 游戏界面初始化
 
 
@@ -92,7 +102,8 @@ class GameEngine:
 
 
 
-    def surface_init(self):
+    def surface_init(self) -> None:
+        """游戏界面初始化"""
         # 填充背景色
         SCREEN.fill(BGCOLOR)
 
@@ -131,9 +142,75 @@ class GameEngine:
         self.draw_taiji()
         self.draw_pmc()
         self.draw_button()
+        return None
 
+    def draw_board(self) -> None:
+        """绘制棋盘"""
+        # 背景颜色覆盖
+        self.board_surface.fill(BOARDCOLOR)
+        # 确定棋盘边框坐标
+        rect_pos = (int(SCREEN_SIZE * 20), int(SCREEN_SIZE * 20), int(SCREEN_SIZE * 360), int(SCREEN_SIZE * 360))
+        # 绘制边框
+        pygame.draw.rect(self.board_surface, BLACK, rect_pos, 3)
+        # 绘制棋盘内线条
+        for i in range(self.board_size - 2):
+            pygame.draw.line(self.board_surface, BLACK, (SCREEN_SIZE * 20, SCREEN_SIZE * 20 + (i + 1) * self.block_size),
+                             (SCREEN_SIZE * 380, SCREEN_SIZE * 20 + (i + 1) * self.block_size), 2)
+            pygame.draw.line(self.board_surface, BLACK, (SCREEN_SIZE * 20 + (i + 1) * self.block_size, SCREEN_SIZE * 20),
+                             (SCREEN_SIZE * 20 + (i + 1) * self.block_size, SCREEN_SIZE * 380), 2)
+        # 绘制天元和星位
+        if self.board_size == 9:
+            position_loc = [2, 4, 6]
+        elif self.board_size == 13:
+            position_loc = [3, 6, 9]
+        else:
+            position_loc = [3, 9, 15]
+        positions = [[SCREEN_SIZE * 20 + 1 + self.block_size * i, SCREEN_SIZE * 20 + 1 + self.block_size * j]
+                     for i in position_loc for j in position_loc]
+        for pos in positions:
+            pygame.draw.circle(self.board_surface, BLACK, pos, 5, 0)
+        return None
 
+    def draw_taiji(self) -> None:
+        """绘制表示下一手落子方的太极图"""
+        black_pos = (self.taiji_surface.get_width() - IMAGES['black'][0].get_width()) / 2, \
+                    (self.taiji_surface.get_height() - IMAGES['black'][0].get_height()) / 2
+        white_pos = black_pos[0] + 44, black_pos[1]
+        # 背景颜色填充
+        self.taiji_surface.fill(BGCOLOR)
+        if not self.play:
+            # 游戏未进行状态
+            self.taiji_surface.blit(IMAGES['black'][0], black_pos)
+            self.taiji_surface.blit(IMAGES['white'][0], white_pos)
+        else:
+            if self.game_state.turn() == go_engine.BLACK:
+                # 下一手为黑方
+                self.taiji_surface.blit(IMAGES['black'][0], black_pos)
+            elif self.game_state.turn() == go_engine.WHITE:
+                # 下一手为白方
+                self.taiji_surface.blit(IMAGES['white'][0], white_pos)
+        return None
 
+    def draw_pmc(self) -> None:
+        self.pmc_surface.fill(BGCOLOR)
+        # 绘制4行说明文字
+        texts = ['执黑玩家：', '执白玩家：', '对弈音乐：', '音乐控制：']
+        pos_next = [22 * SCREEN_SIZE, self.pmc_surface.get_height() / 20]
+        for text in texts:
+            pos_next = self.draw_text(self.pmc_surface, text, pos_next, font_size=24)
+        button_texts = [PLAYERS[self.black_player_id], PLAYERS[self.white_player_id],
+                        MUSICS[self.music_id][0], MUSIC_CONTROLS[self.music_control_id]]
+        call_functions = [self.fct_for_black_player, self.fct_for_white_player,
+                          self.fct_for_music_choose, self.fct_for_music_control]
+        pos = [22 * SCREEN_SIZE + 120, self.info_area.get_height() / 20 + 4]
+        return self.draw_button(button_texts, call_functions, self.info_area, pos, 32, self.info_area_base_coordinate,
+                                up_color=(202, 171, 125), down_color=(186, 146, 86), outer_edge_color=(255, 255, 214),
+                                inner_edge_color=(247, 207, 181), text_color=(253, 253, 19), size=(160, 27), font_size=16)
+        # text_color=(253, 253, 19)  金黄色  up_color=(202, 171, 125)  浅黄色  down_color=(186, 146, 86)  深黄色
+
+    def draw_button(self) -> None:
+
+        pass
 
 
 
@@ -330,32 +407,6 @@ class GameEngine:
                 return True
         return False
 
-    # 棋盘绘制方法
-    def draw_board(self):
-        # 背景颜色覆盖
-        self.board_area.fill(BOARDCOLOR)
-        rect_pos = (int(SCREEN_SIZE * 20), int(SCREEN_SIZE * 20), int(SCREEN_SIZE * 360), int(SCREEN_SIZE * 360))
-        # 绘制边框
-        pygame.draw.rect(self.board_area, BLACK, rect_pos, 3)
-        # 绘制棋盘内线条
-        for i in range(self.size - 2):
-            pygame.draw.line(self.board_area, BLACK, (SCREEN_SIZE * 20, SCREEN_SIZE * 20 + (i + 1) * self.block_size),
-                             (SCREEN_SIZE * 380, SCREEN_SIZE * 20 + (i + 1) * self.block_size), 2)
-        for i in range(self.size - 2):
-            pygame.draw.line(self.board_area, BLACK, (SCREEN_SIZE * 20 + (i + 1) * self.block_size, SCREEN_SIZE * 20),
-                             (SCREEN_SIZE * 20 + (i + 1) * self.block_size, SCREEN_SIZE * 380), 2)
-        # 绘制天元和星位
-        if self.size == 9:
-            position_loc = [2, 4, 6]
-        elif self.size == 13:
-            position_loc = [3, 6, 9]
-        else:
-            position_loc = [3, 9, 15]
-        positions = [[SCREEN_SIZE * 20 + 1 + self.block_size * i, SCREEN_SIZE * 20 + 1 + self.block_size * j]
-                     for i in position_loc for j in position_loc]
-        for pos in positions:
-            pygame.draw.circle(self.board_area, BLACK, pos, 5, 0)
-
     # 绘制棋子方法
     def draw_pieces(self):
         # 根据棋盘状态矩阵，绘制棋子
@@ -400,25 +451,6 @@ class GameEngine:
             elif self.size == 19:
                 pos = (SCREEN_SIZE * 21 + col * self.block_size, SCREEN_SIZE * 19 + row * self.block_size)
         pygame.draw.circle(self.board_area, MARKCOLOR, pos, self.piece_size[0] / 2 + 2 * SCREEN_SIZE, 2)
-
-    # 绘制提示落子方太极图的方法
-    def draw_tip(self):
-        black_pos = (self.tip_area.get_width() - IMAGES['black'][0].get_width()) / 2, \
-                    (self.tip_area.get_height() - IMAGES['black'][0].get_height()) / 2
-        white_pos = black_pos[0] + 44, black_pos[1]
-        self.tip_area.fill(BGCOLOR)  # 背景颜色填充
-        if self.mode == 'train':  # 在训练状态下，绘制双色太极
-            self.tip_area.blit(IMAGES['black'][0], black_pos)
-            self.tip_area.blit(IMAGES['white'][0], white_pos)
-        elif self.mode == 'play':  # 在对局时，最开始全部绘制太极图，后面根据落子方绘制对应太极
-            if not self.game_allow:  # 最开始黑白太极均需绘制
-                self.tip_area.blit(IMAGES['black'][0], black_pos)
-                self.tip_area.blit(IMAGES['white'][0], white_pos)
-            else:
-                if self.turn() == govars.BLACK:  # 绘制黑色太极
-                    self.tip_area.blit(IMAGES['black'][0], black_pos)
-                elif self.turn() == govars.WHITE:  # 绘制白色太极
-                    self.tip_area.blit(IMAGES['white'][0], white_pos)
 
     # 绘制信息及音乐区域的方法
     def draw_info(self):
