@@ -50,21 +50,23 @@ class GoEngine:
         self.state_format = state_format
         self.record_last = record_last
         self.current_state = gogame.init_state(board_size)
+        # 保存棋盘状态，用于悔棋
+        self.board_state_history = []
+        # 保存历史动作，用于悔棋
+        self.action_history = []
 
         if state_format == "separated":
             record_step *= 2
         self.state_channels = record_step + 2 if record_last else record_step + 1
-        self.state = np.zeros((self.state_channels, board_size, board_size))
+        self.board_state = np.zeros((self.state_channels, board_size, board_size))
         self.done = False
 
     def reset(self) -> np.ndarray:
-        """
-        Reset current_state, state
-
-        :return:
-        """
+        """重置current_state, board_state, board_state_history, action_history"""
         self.current_state = gogame.init_state(self.board_size)
-        self.state = np.zeros((self.state_channels, self.board_size, self.board_size))
+        self.board_state = np.zeros((self.state_channels, self.board_size, self.board_size))
+        self.board_state_history = []
+        self.action_history = []
         self.done = False
         return np.copy(self.current_state)
 
@@ -86,66 +88,64 @@ class GoEngine:
             action = self.board_size ** 2
 
         self.current_state = gogame.next_state(self.current_state, action, canonical=False)
-        # 更新self.state
-        self.state = self._update_state_step(action)
+        # 更新self.board_state
+        self.board_state = self._update_state_step(action)
+        # 存储历史状态
+        self.board_state_history.append(np.copy(self.current_state))
+        # 存储历史动作
+        self.action_history.append(action)
         self.done = gogame.game_ended(self.current_state)
         return np.copy(self.current_state)
 
     def _update_state_step(self, action: int) -> np.ndarray:
         """
-        更新self.state，须在更新完self.current_state之后更新self.state
+        更新self.board_state，须在更新完self.current_state之后更新self.board_state
 
         :param action: 下一步落子位置，1d-action
         :return:
         """
         if self.state_format == "separated":
-            # 根据上一步落子方更新self.state(因为self.current_state已经更新完毕)
+            # 根据上一步落子方更新self.board_state(因为self.current_state已经更新完毕)
             if self.turn() == govars.WHITE:
                 # 根据更新过后的self.current_state，下一步落子方为白方，则上一步落子方为黑方
-                self.state[:self.record_step - 1] = np.copy(self.state[1:self.record_step])
-                self.state[self.record_step - 1] = np.copy(self.current_state[govars.BLACK])
+                self.board_state[:self.record_step - 1] = np.copy(self.board_state[1:self.record_step])
+                self.board_state[self.record_step - 1] = np.copy(self.current_state[govars.BLACK])
             else:
                 # 根据更新过后的self.current_state，下一步落子方为黑方，则上一步落子方为白方
-                self.state[self.record_step: self.record_step * 2 - 1] = \
-                    np.copy(self.state[self.record_step + 1: self.record_step * 2])
-                self.state[self.record_step * 2 - 1] = np.copy(self.current_state[govars.WHITE])
+                self.board_state[self.record_step: self.record_step * 2 - 1] = \
+                    np.copy(self.board_state[self.record_step + 1: self.record_step * 2])
+                self.board_state[self.record_step * 2 - 1] = np.copy(self.current_state[govars.WHITE])
         elif self.state_format == "merged":
-            self.state[:self.record_step - 1] = np.copy(self.state[1:self.record_step])
+            self.board_state[:self.record_step - 1] = np.copy(self.board_state[1:self.record_step])
             current_state = self.current_state[[govars.BLACK, govars.WHITE]]
             current_state[govars.WHITE] *= -1
-            self.state[self.record_step - 1] = np.sum(current_state, axis=0)
+            self.board_state[self.record_step - 1] = np.sum(current_state, axis=0)
 
         if self.record_last:
             # 更新下一步落子方
-            self.state[-2] = np.copy(self.current_state[govars.TURN_CHNL])
+            self.board_state[-2] = np.copy(self.current_state[govars.TURN_CHNL])
             # 更新上一步落子位置
-            self.state[-1] = np.zeros((self.board_size, self.board_size))
+            self.board_state[-1] = np.zeros((self.board_size, self.board_size))
             # 上一步不为pass
             if action != self.board_size ** 2:
                 # 将action转换成position
                 position = action // self.board_size, action % self.board_size
-                self.state[-1, position[0], position[1]] = 1
+                self.board_state[-1, position[0], position[1]] = 1
         else:
             # 更新下一步落子方
-            self.state[-1] = np.copy(self.current_state[govars.TURN_CHNL])
-        return np.copy(self.state)
+            self.board_state[-1] = np.copy(self.current_state[govars.TURN_CHNL])
+        return np.copy(self.board_state)
 
     def state(self) -> np.ndarray:
-        """
-        :return: 用于训练神经网络的棋盘状态矩阵
-        """
-        return np.copy(self.state)
+        """用于训练神经网络的棋盘状态矩阵"""
+        return np.copy(self.board_state)
 
     def game_ended(self) -> bool:
-        """
-        :return: 游戏是否结束
-        """
+        """游戏是否结束"""
         return self.done
 
     def winner(self) -> int:
-        """
-        :return: 获胜方，游戏未结束返回-1
-        """
+        """获胜方，游戏未结束返回-1"""
         if not self.done:
             return -1
         else:
@@ -154,65 +154,48 @@ class GoEngine:
             return winner
 
     def valid_move_idcs(self) -> np.ndarray:
-        """
-        :return: 下一步落子有效位置的id
-        """
+        """下一步落子有效位置的id"""
         valid_moves = self.valid_moves()
         return np.argwhere(valid_moves).flatten()
 
     def advanced_valid_move_idcs(self) -> np.ndarray:
-        """
-        :return: 下一步落子的非真眼有效位置的id
-        """
+        """下一步落子的非真眼有效位置的id"""
         advanced_valid_moves = self.advanced_valid_moves()
         return np.argwhere(advanced_valid_moves).flatten()
 
     def uniform_random_action(self) -> np.ndarray:
-        """
-        :return: 随机选择落子位置
-        """
+        """随机选择落子位置"""
         valid_move_idcs = self.valid_move_idcs()
         return np.random.choice(valid_move_idcs)
 
     def advanced_uniform_random_action(self) -> np.ndarray:
-        """
-        :return: 不填真眼的随机位置
-        """
+        """不填真眼的随机位置"""
         advanced_valid_move_idcs = self.advanced_valid_move_idcs()
         return np.random.choice(advanced_valid_move_idcs)
 
     def turn(self) -> int:
-        """
-        :return: 下一步落子方
-        """
+        """下一步落子方"""
         return gogame.turn(self.current_state)
 
     def valid_moves(self) -> np.ndarray:
-        """
-        :return: 下一步落子的有效位置
-        """
+        """下一步落子的有效位置"""
         return gogame.valid_moves(self.current_state)
 
     def advanced_valid_moves(self):
-        """
-        :return: 下一步落子的非真眼有效位置
-        """
+        """下一步落子的非真眼有效位置"""
         valid_moves = 1 - self.current_state[govars.INVD_CHNL]
         eyes_mask = 1 - self.eyes()
         return np.append((valid_moves * eyes_mask).flatten(), 0)
 
     def winning(self):
         """
+        当游戏结束之后，从黑方角度看待，上一步落子后，哪一方胜利
         黑胜：1 白胜：-1
-
-        :return: 当游戏结束之后，从黑方角度看待，上一步落子后，哪一方胜利
         """
         return gogame.winning(self.current_state, self.komi)
 
     def areas(self):
-        """
-        :return: black_area, white_area
-        """
+        """black_area, white_area"""
         return gogame.areas(self.current_state)
 
     def eyes(self):
@@ -221,8 +204,6 @@ class GoEngine:
         1.如果在角上或者边上，则需要对应8个最近位置均有下一步落子方的棋子；
         2.如果不在边上和角上，则需要对应4个最近边全有下一步落子方的棋子，且至少有三个角有下一步落子方的棋子；
         3.所判断的位置没有棋子
-
-        :return:
         """
         board_shape = self.current_state.shape[1:]
 
@@ -251,9 +232,7 @@ class GoEngine:
         return empties * (side_matrix + nonside_matrix)
 
     def all_symmetries(self):
-        """
-        :return: self.state的8中等价表示
-        """
+        """board_state的8种等价表示"""
         symmetries = []
 
         x = np.copy(self.current_state)

@@ -22,7 +22,7 @@ while not done:
     #     action = None
     # else:
     #     action = int(move[0]), int(move[2])
-    # state, reward, done, info = go_env.step(action)
+    # board_state, reward, done, info = go_env.step(action)
 
     if go_env.game_ended():
         break

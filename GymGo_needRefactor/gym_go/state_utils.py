@@ -276,7 +276,7 @@ def adj_data(state, action2d, player):
     neighbors = neighbors[np.nonzero(valid)]  # 得到有效的邻居位置，np.nonezero()获取所有非零元素的索引
 
     # 2021年3月4日，BUG修改：计算surrounded时，应该计算对手的位置
-    # all_pieces = np.sum(state[[govars.BLACK, govars.WHITE]], axis=0)  # 获得一个矩阵，棋盘矩阵位置有棋子（包括黑白）则为1，无棋子则为0
+    # all_pieces = np.sum(board_state[[govars.BLACK, govars.WHITE]], axis=0)  # 获得一个矩阵，棋盘矩阵位置有棋子（包括黑白）则为1，无棋子则为0
     opp_pieces = state[1-player]  # 获得对手的棋子分布矩阵(修改后的结果)
     # surrounded = (all_pieces[neighbors[:, 0], neighbors[:, 1]] > 0).all()  # 判断所有邻居位置是否均有棋子
     surrounded = (opp_pieces[neighbors[:, 0], neighbors[:, 1]] > 0).all()  # 判断所有邻居位置是否均有对手棋子(修改后的结果)

@@ -6,6 +6,7 @@
 
 import pygame
 import os
+import copy
 from pgutils.pgtools.text import draw_text
 from pgutils.pgcontrols.ctbase import CtBase
 from typing import Tuple, List, Union, Callable, Optional
@@ -45,7 +46,7 @@ class Button(CtBase):
         """
         super(Button, self).__init__()
 
-        pos = list(pos)
+        pos = copy.copy(list(pos))
         if isinstance(pos[0], str):
             assert pos[0] == "center"
             pos[0] = (surface.get_width() - size[0]) // 2

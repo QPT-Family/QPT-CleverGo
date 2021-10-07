@@ -211,7 +211,7 @@ class TestGoEnvBasics(unittest.TestCase):
             for _ in range(20):
                 action = self.env.uniform_random_action()
                 self.env.step(action)
-            state = self.env.state()
+            state = self.env.board_state()
             children = self.env.children(canonical, padded=True)
             valid_moves = self.env.valid_moves()
             for a in range(len(valid_moves)):
