@@ -5,7 +5,7 @@
 # @Software: PyCharm
 
 import pygame
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Iterable
 import os
 
 current_path = os.path.dirname(__file__)

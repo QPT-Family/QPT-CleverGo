@@ -136,7 +136,7 @@ class GoEngine:
             self.board_state[-1] = np.copy(self.current_state[govars.TURN_CHNL])
         return np.copy(self.board_state)
 
-    def state(self) -> np.ndarray:
+    def board_state(self) -> np.ndarray:
         """用于训练神经网络的棋盘状态矩阵"""
         return np.copy(self.board_state)
 
@@ -231,20 +231,16 @@ class GoEngine:
 
         return empties * (side_matrix + nonside_matrix)
 
-    def all_symmetries(self):
+    def all_symmetries(self) -> List[np.ndarray]:
         """board_state的8种等价表示"""
-        symmetries = []
+        return gogame.all_symmetries(np.copy(self.board_state))
 
-        x = np.copy(self.current_state)
-        for i in range(8):
-            if (i >> 0) % 2:
-                # 水平翻转
-                x = np.flip(x, 2)
-            if (i >> 1) % 2:
-                # 竖直翻转
-                x = np.flip(x, 1)
-            if (i >> 2) % 2:
-                # 旋转90度
-                x = np.rot90(x, axes=(1, 2))
-            symmetries.append(x)
-        return symmetries
+    @staticmethod
+    def array_symmetries(array: np.ndarray) -> List[np.ndarray]:
+        """
+        指定array的8种旋转表示
+
+        :param array: A (C, BOARD_SIZE, BOARD_SIZE) numpy array, where C is any number
+        :return:
+        """
+        return gogame.all_symmetries(array)

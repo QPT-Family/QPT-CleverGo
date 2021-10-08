@@ -5,7 +5,6 @@
 # @Software: PyCharm
 
 import pygame
-import numpy as np
 import sys
 import copy
 import go_engine
@@ -13,6 +12,8 @@ from go_engine import GoEngine
 from pgutils.ctmanager import CtManager
 from pgutils.pgcontrols.button import Button
 from pgutils.pgtools.text import draw_text
+from player import *
+import os
 
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
 SCREENWIDTH = int(SCREEN_SIZE * 600)  # 屏幕宽度
@@ -36,13 +37,6 @@ SCREEN.blit(loading_text_render, ((SCREEN.get_width() - loading_text_render.get_
                                   (SCREEN.get_height() - loading_text_render.get_height()) / 2))
 pygame.display.update()
 
-
-PLAYERS_9 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200',
-             '蒙特卡洛6400', '策略网络', '价值网络', '阿尔法狗', '幼生阿尔法狗']
-PLAYERS_13_19 = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800']
-PLAYERS = PLAYERS_9  # 为了在代码中不用判断PLAYERS_9还是PLAYERS_13_19
-MUSIC_CONTROLS = ['随机播放', '顺序播放', '单曲循环', '音乐关']
-
 IMAGES = {'black': (
     pygame.image.load('assets/pictures/B.png').convert_alpha(),
     pygame.image.load('assets/pictures/B-9.png').convert_alpha(),
@@ -55,15 +49,13 @@ IMAGES = {'black': (
     pygame.image.load('assets/pictures/W-19.png').convert_alpha()
 )}
 
-# 加载后置
-SOUNDS, MUSICS = {}, []
-SOUNDS_ALL = ['Stone', 'Button']
-# MUSICS_ALL = ['铜雀赋', '风居住的街道', 'Canon', 'Muyuuka', 'River Flows in You', 'Snow Dream', 'Sundial Dreams',
-#               'The Rain', '三个人的时光', '人类的光', '只要为你活一天', '大风起兮云飞扬', '天空之城', '心游太玄', '情动',
-#               '我愿意', '故乡的原风景', '李香兰', '流光', '清平乐', '爱江山更爱美人', '琵琶语', '画堂春', '穿越时空的思念',
-#               '美丽的神话', '虫儿飞', '那些花儿', '风华绝代', '风吹麦浪', '黄昏的归途', '江南雨', 'Childhood Memories',
-#               'Lettre A Elise', 'Star Sky', '夜的钢琴曲5', '梦中的婚礼', '瞬间的永恒', '秋日私语']
-MUSICS_ALL = ['铜雀赋', '风居住的街道']
+SOUNDS = {
+    'stone': pygame.mixer.Sound('assets/audios/Stone.wav'),
+    'button': pygame.mixer.Sound('assets/audios/Button.wav')
+}
+
+MUSICS = [[os.path.splitext(music)[0], pygame.mixer.Sound('assets/musics/' + music)]
+          for music in os.listdir('assets/musics')]
 
 
 class GameEngine:
@@ -96,11 +88,27 @@ class GameEngine:
         self.game_state = GoEngine(board_size=board_size, komi=komi, record_step=record_step,
                                    state_format=state_format, record_last=record_last)
         # 初始化pygame控件管理器
-        self.manager = CtManager()
+        self.ct_manager = CtManager()
         # 游戏控制状态
         self.play_state = False
         # 界面状态，用于控制按钮触发【"play", "train"】
         self.surface_state = "play"
+
+        self.player_name = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200', '蒙特卡洛6400',
+                            '策略网络', '价值网络', '阿尔法狗', '幼生阿尔法狗'] if board_size == 9 else ['人类玩家', '随机落子']
+        self.music_control_name = ['随机播放', '顺序播放', '单曲循环', '音乐关']
+        # 黑方玩家
+        self.black_player = HumanPlayer()
+        # 白方玩家
+        self.white_player = HumanPlayer()
+        # 黑方玩家ID
+        self.black_player_id = 0
+        # 白方玩家ID
+        self.white_player_id = 0
+        # 音乐ID
+        self.music_id = 0
+        # 音乐控制ID
+        self.music_control_id = 0
 
         # 游戏界面初始化
         self.surface_init()
@@ -143,8 +151,6 @@ class GameEngine:
             self.piece_size = IMAGES['black'][2].get_size()
         else:
             self.piece_size = IMAGES['black'][3].get_size()
-        # 按钮间隔
-        self.button_margin = 24 * SCREEN_SIZE
 
         # 绘制棋盘、太极图、PMC区域、Button区域
         self.draw_board()
@@ -208,19 +214,22 @@ class GameEngine:
         pos_next = [22 * SCREEN_SIZE, self.pmc_surface.get_height() / 20]
         for text in texts:
             pos_next = draw_text(self.pmc_surface, text, pos_next, font_size=24)
-        button_texts = [PLAYERS[self.black_player_id], PLAYERS[self.white_player_id],
-                        MUSICS[self.music_id][0], MUSIC_CONTROLS[self.music_control_id]]
+        button_texts = [self.player_name[self.black_player_id], self.player_name[self.white_player_id],
+                        MUSICS[self.music_id][0], self.music_control_name[self.music_control_id]]
         call_functions = [self.fct_for_black_player, self.fct_for_white_player,
                           self.fct_for_music_choose, self.fct_for_music_control]
         button_active_states = [["play"], ["play"], ["play", "train"], ["play", "train"]]
+        button_register_names = ['black_player', 'white_player', 'music_name', 'music_control']
         # 绘制按钮
-        pos_next = [22 * SCREEN_SIZE + 120, self.info_area.get_height() / 20 + 4]
-        for btn_text, call_fct, btn_astate in zip(button_texts, call_functions, button_active_states):
+        pos_next = [22 * SCREEN_SIZE + 120, self.pmc_surface.get_height() / 20 + 4]
+        for btn_text, call_fct, btn_astate, btn_rname in zip(button_texts, call_functions,
+                                                             button_active_states, button_register_names):
             button = Button(self.pmc_surface, btn_text, pos_next, call_fct, up_color=[202, 171, 125],
                             down_color=[186, 146, 86], outer_edge_color=[255, 255, 214], size=[160, 27],
                             inner_edge_color=[247, 207, 181], text_color=[253, 253, 19], font_size=16)
-            self.manager.register(button, btn_astate)
-            pos_next[1] += button.size[1]
+            button.draw_up()
+            self.ct_manager.register(btn_rname, button, btn_astate)
+            pos_next[1] += 18 * SCREEN_SIZE
         return None
 
     def draw_button(self) -> None:
@@ -232,10 +241,13 @@ class GameEngine:
                             ('十三' if self.board_size == 19 else '十九') + '路棋', '训练幼生Alpha狗', '退出游戏']
             call_functions = [self.fct_for_play_game, self.fct_for_pass, self.fct_for_regret, self.fct_for_restart,
                               self.fct_for_new_game_1, self.fct_for_new_game_2, self.fct_for_train_alphago, self.fct_for_exit]
+            button_register_names = ['play', 'pass', 'regret', 'restart', 'game1', 'game2', 'train', 'exit']
             pos_next = ["center", self.button_surface.get_height() / 20]
-            for btn_text, call_fct in zip(button_texts, call_functions):
+            for btn_text, call_fct, btn_rname in zip(button_texts, call_functions, button_register_names):
                 button = Button(self.button_surface, btn_text, pos_next, call_fct, size=[120, 27])
-                self.manager.register(button, [self.surface_state])
+                button.draw_up()
+                self.ct_manager.register(btn_rname, button, [self.surface_state])
+                pos_next[1] += 24 * SCREEN_SIZE
         elif self.surface_state == "train":
             # surface_state为"train"
             pass
@@ -274,14 +286,14 @@ class GameEngine:
                 pos = (SCREEN_SIZE * 19 + col * self.block_size, SCREEN_SIZE * 22 + row * self.block_size)
             elif self.board_size == 13:
                 pos = (SCREEN_SIZE * 20 + col * self.block_size, SCREEN_SIZE * 21 + row * self.block_size)
-            elif self.board_size == 19:
+            else:
                 pos = (SCREEN_SIZE * 21 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
         else:
             if self.board_size == 9:
                 pos = (SCREEN_SIZE * 19 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
             elif self.board_size == 13:
                 pos = (SCREEN_SIZE * 20 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
-            elif self.board_size == 19:
+            else:
                 pos = (SCREEN_SIZE * 21 + col * self.block_size, SCREEN_SIZE * 19 + row * self.block_size)
         pygame.draw.circle(self.board_surface, MARKCOLOR, pos, self.piece_size[0] / 2 + 2 * SCREEN_SIZE, 2)
         return None
@@ -307,31 +319,7 @@ class GameEngine:
             self.play_state = False
         return None
 
-        # self.mode = mode  # 判断是训练（train）还是对局（play）
-        #
-        # if self.mode == 'play':  # 当mode为play时的初始化
-        #     self.sound_load()  # 在mode为play时需加载音效
-        #     self.state_history = []  # 保存棋盘状态，用于悔棋
-        #     self.action_history = []  # 保存历史动作，用于悔棋
-        #     global PLAYERS
-        #     if self.size == 9:
-        #         PLAYERS = PLAYERS_9
-        #     else:
-        #         PLAYERS = PLAYERS_13_19
-        #
-        #     # ==================围棋游戏控制信息初始化==========================
-        #     self.game_allow = False  # 游戏是否允许开始，用于开始游戏按钮被点击时触发
-        #     self.restart = False  # 是否重新开始标记，用于点击重新开始按钮、切换玩家时线程同步
-        #     self.action_next = None  # 下一步的action，当其不为None时，将会执行该动作
-        #     self.button_area_state = 'main'  # 按钮区域状态，总共有main、train_AlphaGo
-        #     self.black_player = HumanPlayer()  # 执黑Player对象
-        #     self.white_player = HumanPlayer()  # 执白Player对象
-        #     self.black_player_id = 0  # 执黑玩家id
-        #     self.white_player_id = 0  # 执白玩家id
-        #     self.music_id = 0  # 对弈音乐id
-        #     self.music_control_id = 0  # 音乐控制id
-
-    def game_state_cp(self) -> GoEngine:
+    def game_state_simulator(self) -> GoEngine:
         """返回一个用作模拟的game_state"""
         game_state = GoEngine(board_size=self.board_size, komi=self.komi, record_step=self.record_step,
                               state_format=self.state_format, record_last=self.record_last)
@@ -339,6 +327,7 @@ class GameEngine:
         game_state.board_state = np.copy(self.game_state.board_state)
         game_state.board_state_history = copy.copy(self.game_state.board_state_history)
         game_state.action_history = copy.copy(self.game_state.action_history)
+        game_state.done = self.game_state.done
         return game_state
 
     def mouse_pos_to_action(self, mouse_pos):
@@ -348,46 +337,47 @@ class GameEngine:
             row = round((mouse_pos[1] - SCREEN_SIZE * 20) / self.block_size)
             if row < 0:
                 row = 0
-            elif row > self.size - 1:
-                row = self.size - 1
+            elif row > self.board_size - 1:
+                row = self.board_size - 1
             col = round((mouse_pos[0] - SCREEN_SIZE * 20) / self.block_size)
             if col < 0:
                 col = 0
-            elif col > self.size - 1:
-                col = self.size - 1
-            return row * self.size + col
+            elif col > self.board_size - 1:
+                col = self.board_size - 1
+            return row * self.board_size + col
         else:
             return None
 
     def draw_over(self):
-        # 绘制游戏结束画面
-        black_areas, white_areas = gogame.areas(self.state_)  # 获得黑白双方的区域
-        winner = gogame.winning(self.state_, self.komi)
-        over_text_1 = '协商终局'
-        over_text_2 = '黑方{}子 白方{}子'.format(black_areas, white_areas)
-        area_difference = (black_areas - white_areas - self.komi) / 2
-        if area_difference == 0:
-            over_text_3 = '和棋'
-        elif area_difference > 0:
-            over_text_3 = '黑胜{}子'.format(area_difference)
-        else:
-            over_text_3 = '白胜{}子'.format(-area_difference)
-        over_screen = pygame.Surface((320, 170), pygame.SRCALPHA)
-        over_screen.fill((57, 44, 33, 100))
-        next_pos = self.draw_text(over_screen, over_text_1, ['center', over_screen.get_height() / 6],
-                                  font_size=26, font_color=(220, 220, 220))
-        next_pos = self.draw_text(over_screen, over_text_2, ['center', next_pos[1]],
-                                  font_size=26, font_color=(220, 220, 220))
-        self.draw_text(over_screen, over_text_3, ['center', next_pos[1]], font_size=26, font_color=(220, 220, 220))
-        self.board_area.blit(over_screen,
-                             ((self.board_area.get_width() - over_screen.get_width()) / 2,
-                              (self.board_area.get_height() - over_screen.get_height()) / 2))
+        # # 绘制游戏结束画面
+        # black_areas, white_areas = gogame.areas(self.state_)  # 获得黑白双方的区域
+        # winner = gogame.winning(self.state_, self.komi)
+        # over_text_1 = '协商终局'
+        # over_text_2 = '黑方{}子 白方{}子'.format(black_areas, white_areas)
+        # area_difference = (black_areas - white_areas - self.komi) / 2
+        # if area_difference == 0:
+        #     over_text_3 = '和棋'
+        # elif area_difference > 0:
+        #     over_text_3 = '黑胜{}子'.format(area_difference)
+        # else:
+        #     over_text_3 = '白胜{}子'.format(-area_difference)
+        # over_screen = pygame.Surface((320, 170), pygame.SRCALPHA)
+        # over_screen.fill((57, 44, 33, 100))
+        # next_pos = self.draw_text(over_screen, over_text_1, ['center', over_screen.get_height() / 6],
+        #                           font_size=26, font_color=(220, 220, 220))
+        # next_pos = self.draw_text(over_screen, over_text_2, ['center', next_pos[1]],
+        #                           font_size=26, font_color=(220, 220, 220))
+        # self.draw_text(over_screen, over_text_3, ['center', next_pos[1]], font_size=26, font_color=(220, 220, 220))
+        # self.board_area.blit(over_screen,
+        #                      ((self.board_area.get_width() - over_screen.get_width()) / 2,
+        #                       (self.board_area.get_height() - over_screen.get_height()) / 2))
+        pass
 
     def draw_speed(self, count, total):
         """一个简单绘制落子进度的方法"""
-        self.speed_area.fill(BGCOLOR)
-        sub_speed_area = self.speed_area.subsurface((0, SCREENHEIGHT - round(count / total * SCREENHEIGHT),
-                                                     self.speed_area.get_width(), round(count / total * SCREENHEIGHT)))
+        self.speed_surface.fill(BGCOLOR)
+        sub_speed_area = self.speed_surface.subsurface((0, SCREENHEIGHT - round(count / total * SCREENHEIGHT),
+                                                        self.speed_surface.get_width(), round(count / total * SCREENHEIGHT)))
         # sub_speed_area.fill((106, 255, 143))
         sub_speed_area.fill((15, 255, 255))
 
@@ -406,14 +396,12 @@ class GameEngine:
                 MUSICS[self.music_id][1].play()
             elif self.music_control_id == 2:  # 单曲循环
                 MUSICS[self.music_id][1].play()
-            self.info_button_and_area = self.draw_info()
         elif pygame.mixer.get_busy() and self.music_control_id == 3:  # 音乐关
             MUSICS[self.music_id][1].stop()
 
     def fct_for_black_player(self):
-        SOUNDS['button'].play()
         self.black_player_id += 1
-        self.black_player_id %= len(PLAYERS)
+        self.black_player_id %= len(self.player_name)
         pre_player_allow = self.black_player.allow
         # 将当前Player设置为响应Player
         if self.black_player_id == 0:  # 人类玩家
@@ -441,15 +429,13 @@ class GameEngine:
         else:  # 暂未实现
             self.black_player = Player()
         self.black_player.allow = pre_player_allow
-        self.info_button_and_area = self.draw_info()
-        if self.game_allow and self.turn() == govars.BLACK:
+        if self.game_allow and self.play_state == govars.BLACK:
             # 在游戏进行状态下切换玩家会导致上一次落子取消
-            self.restart = True  # 切换对手时会打开重置标志
+            self.play_state = True  # 切换对手时会打开重置标志
 
     def fct_for_white_player(self):
-        SOUNDS['button'].play()
         self.white_player_id += 1
-        self.white_player_id %= len(PLAYERS)
+        self.white_player_id %= len(self.player_name)
         pre_player_allow = self.white_player.allow
         # 将当前Player设置为响应Player
         if self.white_player_id == 0:  # 人类玩家
@@ -477,13 +463,11 @@ class GameEngine:
         else:  # 暂未实现
             self.white_player = Player()
         self.white_player.allow = pre_player_allow
-        self.info_button_and_area = self.draw_info()
-        if self.game_allow and self.turn() == govars.WHITE:
+        if self.game_allow and self.game_state.turn() == govars.WHITE:
             # 在游戏进行状态下切换玩家会导致上一次落子取消
-            self.restart = True
+            self.play_state = True
 
     def fct_for_music_choose(self):
-        SOUNDS['button'].play()
         MUSICS[self.music_id][1].stop()
         if self.music_control_id == 0:  # 随机播放
             rand_int = np.random.randint(len(MUSICS))  # 随机获取一首歌
@@ -495,28 +479,28 @@ class GameEngine:
             self.music_id += 1
             self.music_id %= len(MUSICS)
         MUSICS[self.music_id][1].play()
-        self.info_button_and_area = self.draw_info()
 
     def fct_for_music_control(self):
-        SOUNDS['button'].play()
         self.music_control_id += 1
-        self.music_control_id %= len(MUSIC_CONTROLS)
-        if self.music_control_id == 0:  # 说明音乐控制按钮上一次为音乐关
+        self.music_control_id %= len(self.music_control_name)
+        self.ct_manager.controls['music_control'][0].text = self.music_control_name[self.music_control_id]
+        # 说明音乐控制按钮上一次为音乐关
+        if self.music_control_id == 0:
             # 须直接将音乐打开
             MUSICS[self.music_id][1].play()
-        self.info_button_and_area = self.draw_info()
 
     def fct_for_play_game(self):
-        # 当开始游戏按钮被点击
-        SOUNDS['button'].play()
-        if not self.game_allow:  # 在game_allow为False情况下，开始游戏按钮点击才有用
-            self.reset()
-            self.state_history = []
-            self.action_history = []
-            self.game_allow = True
-            self.black_player.allow = True
-            self.draw_board()
-            self.draw_tip()
+        # # 当开始游戏按钮被点击
+        # SOUNDS['button'].play()
+        # if not self.game_allow:  # 在game_allow为False情况下，开始游戏按钮点击才有用
+        #     self.reset()
+        #     self.state_history = []
+        #     self.action_history = []
+        #     self.game_allow = True
+        #     self.black_player.allow = True
+        #     self.draw_board()
+        #     self.draw_tip()
+        pass
 
     def fct_for_pass(self):
         # pass一手
@@ -614,30 +598,32 @@ class GameEngine:
         self.button_and_area = self.draw_button_area()
 
     def fct_for_train_alphago(self):
-        # 点击训练幼生阿尔法狗按钮，进入训练界面
-        SOUNDS['button'].play()
-        self.__init__(self.size, komi=self.komi, reward_method=self.reward_method, mode=self.mode)
-        self.trainer = TrainPipeline(self, n_playout=100, model_path='model2.pdparams')
-        self.trainer.run()
+        # # 点击训练幼生阿尔法狗按钮，进入训练界面
+        # SOUNDS['button'].play()
+        # self.__init__(self.size, komi=self.komi, reward_method=self.reward_method, mode=self.mode)
+        # self.trainer = TrainPipeline(self, n_playout=100, model_path='model2.pdparams')
+        # self.trainer.run()
+        pass
 
     def fct_for_exit(self):
         # 当退出游戏按钮被点击
         sys.exit()
 
-    def sound_load(self):
-        global SOUNDS, MUSICS, SOUNDS_ALL, MUSICS_ALL
-        try:
-            for sound in SOUNDS_ALL:
-                SOUNDS[sound.lower()] = pygame.mixer.Sound('assets/audios/' + sound + '.wav')
-            for music in MUSICS_ALL:
-                MUSICS.append([music, pygame.mixer.Sound('assets/musics/' + music + '.mp3')])
-        except:
-            print("音效系统加载失败！")
+    # def sound_load(self):
+    #     global SOUNDS, MUSICS, SOUNDS_ALL, MUSICS_ALL
+    #     try:
+    #         for sound in SOUNDS_ALL:
+    #             SOUNDS[sound.lower()] = pygame.mixer.Sound('assets/audios/' + sound + '.wav')
+    #         for music in MUSICS_ALL:
+    #             MUSICS.append([music, pygame.mixer.Sound('assets/musics/' + music + '.mp3')])
+    #     except:
+    #         print("音效系统加载失败！")
 
 
 if __name__ == '__main__':
-    go_game = GoGameState(mode='play')
+    go_game = GameEngine()
     while True:
         for event in pygame.event.get():
-            pass
+            go_game.ct_manager.update(go_game.surface_state, event)
+            go_game.music_control()
         pygame.display.update()
