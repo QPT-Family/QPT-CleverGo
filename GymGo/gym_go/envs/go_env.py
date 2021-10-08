@@ -39,8 +39,8 @@ class GoEnv(gym.Env):
 
     def reset(self):
         '''
-        Reset board_state, go_board, curr_player, prev_player_passed,
-        done, return board_state
+        Reset state, go_board, curr_player, prev_player_passed,
+        done, return state
         '''
         self.state_ = gogame.init_state(self.size)
         self.done = False
@@ -82,7 +82,7 @@ class GoEnv(gym.Env):
 
     def info(self):
         """
-        :return: Debugging info for the board_state
+        :return: Debugging info for the state
         """
         return {
             'turn': gogame.turn(self.state_),
@@ -92,13 +92,13 @@ class GoEnv(gym.Env):
 
     def state(self):
         """
-        :return: copy of board_state
+        :return: copy of state
         """
         return np.copy(self.state_)
 
     def canonical_state(self):
         """
-        :return: canonical shallow copy of board_state
+        :return: canonical shallow copy of state
         """
         return gogame.canonical_form(self.state_)
 

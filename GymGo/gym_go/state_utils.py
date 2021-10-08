@@ -253,7 +253,7 @@ def set_turn(state):
 def batch_set_turn(batch_state):
     """
     Swaps turn
-    :param board_state:
+    :param batch_state:
     :return:
     """
     batch_state[:, govars.TURN_CHNL] = 1 - batch_state[:, govars.TURN_CHNL]

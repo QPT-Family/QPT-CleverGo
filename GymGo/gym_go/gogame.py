@@ -5,7 +5,7 @@ from sklearn import preprocessing
 from GymGo.gym_go import state_utils, govars
 
 """
-The board_state of the game is a numpy array
+The state of the game is a numpy array
 * Are values are either 0 or 1
 
 * Shape [NUM_CHNLS, SIZE, SIZE]
@@ -38,11 +38,11 @@ def batch_init_state(batch_size, board_size):
 
 
 def next_state(state, action1d, canonical=False):
-    # Deep copy the board_state to modify
+    # Deep copy the state to modify
     state = np.copy(state)
 
     # Initialize basic variables
-    board_shape = state.shape[1:]  # board_state.shape为(通道数, 棋盘高度, 棋盘宽度)
+    board_shape = state.shape[1:]  # state.shape为(通道数, 棋盘高度, 棋盘宽度)
     pass_idx = np.prod(board_shape)  # np.prod()将参数内所有元素连乘，pass_idx："pass"对应的id
     passed = action1d == pass_idx  # 如果action id等于pass_idx，则passed为True
     action2d = action1d // board_shape[0], action1d % board_shape[1]  # 将action1d转换成action2d
@@ -102,7 +102,7 @@ def next_state(state, action1d, canonical=False):
 
 
 def batch_next_states(batch_states, batch_action1d, canonical=False):
-    # Deep copy the board_state to modify
+    # Deep copy the state to modify
     batch_states = np.copy(batch_states)
 
     # Initialize basic variables
