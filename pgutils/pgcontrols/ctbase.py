@@ -9,6 +9,9 @@ import pygame
 
 class CtBase:
     """pygame控件基类，所有自定义控件均需继承CtBase"""
+    def __init__(self):
+        # 控件是否被激活
+        self.active = True
 
     def update(self, event: pygame.event) -> ...:
         """

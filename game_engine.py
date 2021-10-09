@@ -91,8 +91,6 @@ class GameEngine:
         self.ct_manager = CtManager()
         # 游戏控制状态
         self.play_state = False
-        # 界面状态，用于控制按钮触发【"play", "train"】
-        self.surface_state = "play"
 
         self.player_name = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200', '蒙特卡洛6400',
                             '策略网络', '价值网络', '阿尔法狗', '幼生阿尔法狗'] if board_size == 9 else ['人类玩家', '随机落子']
@@ -483,7 +481,7 @@ class GameEngine:
     def fct_for_music_control(self):
         self.music_control_id += 1
         self.music_control_id %= len(self.music_control_name)
-        self.ct_manager.controls['music_control'][0].text = self.music_control_name[self.music_control_id]
+        self.ct_manager.controls['music_control'].text = self.music_control_name[self.music_control_id]
         # 说明音乐控制按钮上一次为音乐关
         if self.music_control_id == 0:
             # 须直接将音乐打开
