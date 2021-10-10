@@ -139,18 +139,26 @@ class GameEngine:
                                                18 * SCREEN_SIZE, up_color=[202, 171, 125], down_color=[186, 146, 86],
                                                outer_edge_color=[255, 255, 214], size=[160, 27], font_size=16,
                                                inner_edge_color=[247, 207, 181], text_color=[253, 253, 19])
-        operate_button_text = ['开始游戏', '弃一手', '悔棋', '重新开始', ('十三' if self.board_size == 9 else '九') + '路棋',
-                               ('十三' if self.board_size == 19 else '十九') + '路棋', '训练幼生Alpha狗', '退出游戏']
-        operate_button_call_functions = [self.fct_for_play_game, self.fct_for_pass, self.fct_for_regret,
-                                         self.fct_for_restart, self.fct_for_new_game_1, self.fct_for_new_game_2,
-                                         self.fct_for_train_alphago, self.fct_for_exit]
-        self.operate_buttons = self.create_buttons(self.operate_surface, operate_button_text,
-                                                   operate_button_call_functions,
-                                                   ["center", self.operate_surface.get_height() / 20], 24 * SCREEN_SIZE,
-                                                   size=[120, 27])
+        operate_play_button_texts = ['开始游戏', '弃一手', '悔棋', '重新开始', ('十三' if self.board_size == 9 else '九') + '路棋',
+                                     ('十三' if self.board_size == 19 else '十九') + '路棋', '训练幼生Alpha狗', '退出游戏']
+        operate_play_button_call_functions = [self.fct_for_play_game, self.fct_for_pass, self.fct_for_regret,
+                                              self.fct_for_restart, self.fct_for_new_game_1, self.fct_for_new_game_2,
+                                              self.fct_for_train_alphago, self.fct_for_exit]
+        self.operate_play_buttons = self.create_buttons(self.operate_surface, operate_play_button_texts,
+                                                        operate_play_button_call_functions,
+                                                        ['center', self.operate_surface.get_height() / 20],
+                                                        24 * SCREEN_SIZE, size=[120, 27])
+        operate_train_button_texts = ['开始训练', '返回']
+        operate_train_button_call_functions = [self.fct_for_train, self.fct_for_back]
+        self.operate_train_buttons = self.create_buttons(self.operate_surface, operate_train_button_texts,
+                                                         operate_train_button_call_functions,
+                                                         ['center', self.operate_surface.get_height() * 0.8],
+                                                         24 * SCREEN_SIZE, size=[120, 27])
+
         # 按钮控件注册
         self.ct_manager.register(self.pmc_buttons)
-        self.ct_manager.register(self.operate_buttons)
+        self.ct_manager.register(self.operate_play_buttons)
+        self.ct_manager.register(self.operate_train_buttons)
 
         # 棋盘每格的大小
         self.block_size = int(SCREEN_SIZE * 360 / (self.board_size - 1))
@@ -239,7 +247,7 @@ class GameEngine:
         if self.surface_state == 'play':
             self.operate_surface.fill(BGCOLOR)
             # 按钮激活
-            for button in self.operate_buttons:
+            for button in self.operate_play_buttons:
                 button.enable()
         elif self.surface_state == 'train':
             # surface_state为"train"
@@ -292,12 +300,7 @@ class GameEngine:
         return None
 
     def play_step(self, action: int) -> None:
-        """
-        输入动作，更新游戏状态
-
-        :param action: 一个0 —— self.size * self.size的整数
-        :return:
-        """
+        """输入动作，更新游戏状态，并在有些界面上绘制相应的动画"""
         self.game_state.step(action)
         # 重绘棋盘、棋子、落子标记
         if action != self.board_size * self.board_size and action is not None:
@@ -341,38 +344,39 @@ class GameEngine:
         else:
             return None
 
-    def draw_over(self):
-        # # 绘制游戏结束画面
-        # black_areas, white_areas = gogame.areas(self.state_)  # 获得黑白双方的区域
-        # winner = gogame.winning(self.state_, self.komi)
-        # over_text_1 = '协商终局'
-        # over_text_2 = '黑方{}子 白方{}子'.format(black_areas, white_areas)
-        # area_difference = (black_areas - white_areas - self.komi) / 2
-        # if area_difference == 0:
-        #     over_text_3 = '和棋'
-        # elif area_difference > 0:
-        #     over_text_3 = '黑胜{}子'.format(area_difference)
-        # else:
-        #     over_text_3 = '白胜{}子'.format(-area_difference)
-        # over_screen = pygame.Surface((320, 170), pygame.SRCALPHA)
-        # over_screen.fill((57, 44, 33, 100))
-        # next_pos = self.draw_text(over_screen, over_text_1, ['center', over_screen.get_height() / 6],
-        #                           font_size=26, font_color=(220, 220, 220))
-        # next_pos = self.draw_text(over_screen, over_text_2, ['center', next_pos[1]],
-        #                           font_size=26, font_color=(220, 220, 220))
-        # self.draw_text(over_screen, over_text_3, ['center', next_pos[1]], font_size=26, font_color=(220, 220, 220))
-        # self.board_area.blit(over_screen,
-        #                      ((self.board_area.get_width() - over_screen.get_width()) / 2,
-        #                       (self.board_area.get_height() - over_screen.get_height()) / 2))
-        pass
+    def draw_over(self) -> None:
+        """绘制游戏结束画面"""
+        # 获得黑白双方的区域
+        black_areas, white_areas = self.game_state.areas()
+        over_text_1 = '协商终局'
+        over_text_2 = '黑方{}子 白方{}子'.format(black_areas, white_areas)
+        area_difference = (black_areas - white_areas - self.komi) / 2
+        if area_difference == 0:
+            over_text_3 = '和棋'
+        elif area_difference > 0:
+            over_text_3 = '黑胜{}子'.format(area_difference)
+        else:
+            over_text_3 = '白胜{}子'.format(-area_difference)
+        over_screen = pygame.Surface((320, 170), pygame.SRCALPHA)
+        over_screen.fill((57, 44, 33, 100))
+        next_pos = draw_text(over_screen, over_text_1, ['center', over_screen.get_height() / 6],
+                             font_size=26, font_color=[220, 220, 220])
+        next_pos = draw_text(over_screen, over_text_2, ['center', next_pos[1]],
+                             font_size=26, font_color=[220, 220, 220])
+        draw_text(over_screen, over_text_3, ['center', next_pos[1]], font_size=26, font_color=[220, 220, 220])
+        self.board_surface.blit(over_screen,
+                                ((self.board_surface.get_width() - over_screen.get_width()) / 2,
+                                 (self.board_surface.get_height() - over_screen.get_height()) / 2))
+        return None
 
-    def draw_speed(self, count, total):
+    def draw_speed(self, count, total) -> None:
         """一个简单绘制落子进度的方法"""
         self.speed_surface.fill(BGCOLOR)
         sub_speed_area = self.speed_surface.subsurface((0, SCREENHEIGHT - round(count / total * SCREENHEIGHT),
                                                         self.speed_surface.get_width(), round(count / total * SCREENHEIGHT)))
         # sub_speed_area.fill((106, 255, 143))
         sub_speed_area.fill((15, 255, 255))
+        return None
 
     @staticmethod
     def create_buttons(surface: pygame.Surface,
@@ -434,6 +438,8 @@ class GameEngine:
                 MUSICS[self.music_id][1].play()
             elif self.music_control_id == 2:  # 单曲循环
                 MUSICS[self.music_id][1].play()
+            self.pmc_buttons[2].set_text(MUSICS[self.music_id][0])
+            self.pmc_buttons[2].draw_up()
         elif pygame.mixer.get_busy() and self.music_control_id == 3:  # 音乐关
             MUSICS[self.music_id][1].stop()
 
@@ -457,17 +463,17 @@ class GameEngine:
         elif self.black_player_id == 6:  # 蒙特卡洛6400
             self.black_player = MCTSPlayer(n_playout=6400)
         elif self.black_player_id == 7:  # 策略网络
-            self.black_player = PolicyNetPlayer()
+            self.black_player = PolicyNetPlayer(model_path='models/alpha_go.pdparams')
         elif self.black_player_id == 8:  # 价值网络
-            self.black_player = ValueNetPlayer()
+            self.black_player = ValueNetPlayer(model_path='models/alpha_go.pdparams')
         elif self.black_player_id == 9:  # 阿尔法狗
-            self.black_player = AlphaGoPlayer(model_path='models/model.pdparams')
+            self.black_player = AlphaGoPlayer(model_path='models/alpha_go.pdparams')
         elif self.black_player_id == 10:  # 幼生阿尔法狗（与阿尔法狗只有参数路径不同）
-            self.black_player = AlphaGoPlayer(model_path='models/model.pdparams')  # 暂时用相同的参数
+            self.black_player = AlphaGoPlayer(model_path='models/my_alpha_go.pdparams')
         else:  # 暂未实现
             self.black_player = Player()
         self.black_player.allow = pre_player_allow
-        if self.game_allow and self.play_state == govars.BLACK:
+        if self.play_state and self.game_state.turn() == govars.BLACK:
             # 在游戏进行状态下切换玩家会导致上一次落子取消
             self.play_state = True  # 切换对手时会打开重置标志
 
@@ -491,17 +497,17 @@ class GameEngine:
         elif self.white_player_id == 6:  # 蒙特卡洛6400
             self.white_player = MCTSPlayer(n_playout=6400)
         elif self.white_player_id == 7:  # 策略网络
-            self.white_player = PolicyNetPlayer()
+            self.white_player = PolicyNetPlayer(model_path='models/alpha_go.pdparams')
         elif self.white_player_id == 8:  # 价值网络
-            self.white_player = ValueNetPlayer()
+            self.white_player = ValueNetPlayer(model_path='models/alpha_go.pdparams')
         elif self.white_player_id == 9:  # 阿尔法狗
-            self.white_player = AlphaGoPlayer(model_path='models/model.pdparams')
-        elif self.white_player_id == 10:  # 幼生阿尔法狗（与阿尔法狗只有参数路径不同）
-            self.white_player = AlphaGoPlayer(model_path='models/model.pdparams')  # 暂时用相同的参数
+            self.white_player = AlphaGoPlayer(model_path='models/alpha_go.pdparams')
+        elif self.white_player_id == 10:  # 幼生阿尔法狗
+            self.white_player = AlphaGoPlayer(model_path='models/my_alpha_go.pdparams')
         else:  # 暂未实现
             self.white_player = Player()
         self.white_player.allow = pre_player_allow
-        if self.game_allow and self.game_state.turn() == govars.WHITE:
+        if self.play_state and self.game_state.turn() == govars.WHITE:
             # 在游戏进行状态下切换玩家会导致上一次落子取消
             self.play_state = True
 
@@ -516,6 +522,7 @@ class GameEngine:
         else:
             self.music_id += 1
             self.music_id %= len(MUSICS)
+        self.pmc_buttons[2].set_text(MUSICS[self.music_id][0])
         MUSICS[self.music_id][1].play()
 
     def fct_for_music_control(self):
@@ -528,112 +535,111 @@ class GameEngine:
             MUSICS[self.music_id][1].play()
 
     def fct_for_play_game(self):
-        # # 当开始游戏按钮被点击
-        # SOUNDS['button'].play()
-        # if not self.game_allow:  # 在game_allow为False情况下，开始游戏按钮点击才有用
-        #     self.reset()
-        #     self.state_history = []
-        #     self.action_history = []
-        #     self.game_allow = True
-        #     self.black_player.allow = True
-        #     self.draw_board()
-        #     self.draw_tip()
-        pass
+        # 当开始游戏按钮被点击
+        if self.play_state:
+            # 游戏在进行状态时点击该按钮
+            self.operate_play_buttons[0].set_text('开始游戏')
+            self.operate_play_buttons[0].draw_up()
+            self.play_state = False
+        else:
+            # 游戏在未进行状态时点击该按钮
+            self.operate_play_buttons[0].set_text('暂停游戏')
+            self.operate_play_buttons[0].draw_up()
+            self.game_state.reset()
+            self.play_state = True
+            self.black_player.allow = True
+            self.draw_board()
+            self.draw_taiji()
 
     def fct_for_pass(self):
         # pass一手
-        SOUNDS['button'].play()
-        if self.game_allow:  # 游戏开始后，弃一手按钮才有用
-            if not self.current_player_type([HumanPlayer]):
-                self.restart = True
-            else:  # 如果当前玩家是人类玩家，则会允许对手落子（因为自己会pass）
-                if self.get_current_player() == govars.BLACK:
-                    self.white_player.allow = True
-                elif self.get_current_player() == govars.WHITE:
-                    self.black_player.allow = True
-            self.play_step(self.size * self.size)
-            self.draw_tip()
+        if self.play_state:  # 游戏开始后，弃一手按钮才有用
+            # if not self.current_player_type([HumanPlayer]):
+            #     self.restart = True
+            # else:  # 如果当前玩家是人类玩家，则会允许对手落子（因为自己会pass）
+            #     if self.get_current_player() == govars.BLACK:
+            #         self.white_player.allow = True
+            #     elif self.get_current_player() == govars.WHITE:
+            #         self.black_player.allow = True
+            self.play_step(self.board_size * self.board_size)
+            self.draw_taiji()
 
     def fct_for_regret(self):
         # 悔棋
         SOUNDS['button'].play()
-        if self.game_allow:
-            if len(self.state_history) > 2:
-                self.state_ = self.state_history[-2]
-                self.state_history = self.state_history[:-2]
-                action = self.action_history[-3]
-                self.action_history = self.action_history[:-2]
-                # self.simulate_board_state = np.copy(self.state_)
+        if self.play_state:
+            if len(self.game_state.board_state_history) > 2:
+                self.game_state.current_state = self.game_state.board_state_history[-2]
+                self.game_state.board_state_history = self.game_state.board_state_history[:-2]
+                action = self.game_state.action_history[-3]
+                self.game_state.action_history = self.game_state.action_history[:-2]
                 self.draw_board()
                 self.draw_pieces()
                 self.draw_mark(action)
-                self.draw_tip()
-                if not self.current_player_type([HumanPlayer]):
-                    self.restart = True
-            elif len(self.state_history) == 2:
-                self.state_ = self.state_history[-2]
-                self.state_history = self.state_history[:-2]
-                self.action_history = self.action_history[:-2]
-                # self.simulate_board_state = np.copy(self.state_)
+                self.draw_taiji()
+                # if not self.current_player_type([HumanPlayer]):
+                #     self.restart = True
+            elif len(self.game_state.board_state_history) == 2:
+                self.game_state.current_state = self.game_state.board_state_history[-2]
+                self.game_state.board_state_history = self.game_state.board_state_history[:-2]
+                self.game_state.action_history = self.game_state.action_history[:-2]
                 self.draw_board()
                 self.draw_pieces()
-                self.draw_tip()
-                if not self.current_player_type([HumanPlayer]):
-                    self.restart = True
+                self.draw_taiji()
+                # if not self.current_player_type([HumanPlayer]):
+                #     self.restart = True
 
     def fct_for_restart(self):
-        SOUNDS['button'].play()
         # 当重新开始按钮被点击
-        if not self.current_player_type([HumanPlayer]):
-            self.restart = True  # 记录重新开始按钮被点击
-        self.reset()
-        if not self.game_allow:
+        # if not self.current_player_type([HumanPlayer]):
+        #     self.restart = True  # 记录重新开始按钮被点击
+        self.game_state.reset()
+        if not self.play_state:
             self.black_player.allow = True
-        self.game_allow = True  # 游戏开始
+        self.play_state = True  # 游戏开始
         self.white_player.allow = False
-        self.state_history = []  # 历史记录置空
-        self.action_history = []
-        # self.simulate_board_state = np.copy(self.state_)
         self.draw_board()
-        self.draw_tip()  # 更改落子提示太极图
+        self.draw_taiji()  # 更改落子提示太极图
 
     def fct_for_new_game_1(self):
-        SOUNDS['button'].play()
         # 保存音乐信息
         music_id = self.music_id
         music_control_id = self.music_control_id
-        new_game_size = self.size
         # 初始化
-        if self.size == 9:
+        if self.board_size == 9:
             new_game_size = 13
         else:
             new_game_size = 9
-        self.__init__(new_game_size, komi=self.komi, reward_method=self.reward_method, mode=self.mode)
+        self.__init__(new_game_size, komi=self.komi, record_step=self.record_step, state_format=self.state_format,
+                      record_last=self.record_last)
         self.music_id = music_id
         self.music_control_id = music_control_id
+        self.pmc_buttons[2].set_text(MUSICS[self.music_id][0])
+        self.pmc_buttons[3].set_text(self.music_control_name[self.music_control_id])
         self.draw_board()
-        self.draw_tip()
-        self.info_button_and_area = self.draw_info()
-        self.button_and_area = self.draw_button_area()
+        self.draw_taiji()
+        self.draw_pmc()
+        self.draw_operate()
 
     def fct_for_new_game_2(self):
-        SOUNDS['button'].play()
         # 保存音乐信息
         music_id = self.music_id
         music_control_id = self.music_control_id
-        new_game_size = self.size
         # 初始化
-        if self.size == 19:
+        if self.board_size == 19:
             new_game_size = 13
         else:
             new_game_size = 19
-        self.__init__(new_game_size, komi=self.komi, reward_method=self.reward_method, mode=self.mode)
+        self.__init__(new_game_size, komi=self.komi, record_step=self.record_step, state_format=self.state_format,
+                      record_last=self.record_last)
         self.music_id = music_id
         self.music_control_id = music_control_id
+        self.pmc_buttons[2].set_text(MUSICS[self.music_id][0])
+        self.pmc_buttons[3].set_text(self.music_control_name[self.music_control_id])
         self.draw_board()
-        self.draw_tip()
-        self.info_button_and_area = self.draw_info()
-        self.button_and_area = self.draw_button_area()
+        self.draw_taiji()
+        self.draw_pmc()
+        self.draw_operate()
 
     def fct_for_train_alphago(self):
         # # 点击训练幼生阿尔法狗按钮，进入训练界面
@@ -643,25 +649,25 @@ class GameEngine:
         # self.trainer.run()
         pass
 
-    def fct_for_exit(self):
+    @staticmethod
+    def fct_for_exit():
         # 当退出游戏按钮被点击
         sys.exit()
 
-    # def sound_load(self):
-    #     global SOUNDS, MUSICS, SOUNDS_ALL, MUSICS_ALL
-    #     try:
-    #         for sound in SOUNDS_ALL:
-    #             SOUNDS[sound.lower()] = pygame.mixer.Sound('assets/audios/' + sound + '.wav')
-    #         for music in MUSICS_ALL:
-    #             MUSICS.append([music, pygame.mixer.Sound('assets/musics/' + music + '.mp3')])
-    #     except:
-    #         print("音效系统加载失败！")
+    def fct_for_train(self):
+        # 当开始训练按钮被点击
+        pass
+
+    def fct_for_back(self):
+        # 当返回按钮被点击
+        pass
 
 
 if __name__ == '__main__':
-    go_game = GameEngine()
+    # 功能测试
+    game = GameEngine()
     while True:
         for event in pygame.event.get():
-            go_game.ct_manager.update(event)
-        go_game.music_control()
+            game.ct_manager.update(event)
+        game.music_control()
         pygame.display.update()

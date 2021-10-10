@@ -18,7 +18,7 @@ class CtBase:
         self.active = True
         return None
 
-    def frozen(self) -> None:
+    def disable(self) -> None:
         """冻结控件"""
         self.active = False
         return None
