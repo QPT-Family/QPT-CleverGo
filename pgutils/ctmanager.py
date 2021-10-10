@@ -6,21 +6,22 @@
 
 from pgutils.pgcontrols.ctbase import CtBase
 import pygame
+from typing import List
 
 
 class CtManager:
     def __init__(self):
-        self.controls = {}
+        self.controls = []
 
-    def register(self, control_name: str, control: CtBase) -> None:
+    def register(self, controls: List[CtBase]) -> None:
         """
         控件注册
 
-        :param control_name: 注册名称
-        :param control: pygame控件
+        :param controls: pygame控件
         :return:
         """
-        self.controls[control_name] = control
+        for control in controls:
+            self.controls.append(control)
         return None
 
     def update(self, event: pygame.event) -> None:
@@ -30,7 +31,7 @@ class CtManager:
         :param event: pygame事件
         :return:
         """
-        for control_name in self.controls:
-            if self.controls[control_name].active:
-                self.controls[control_name].update(event)
+        for control in self.controls:
+            if control.active:
+                control.update(event)
         return None

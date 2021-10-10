@@ -21,6 +21,7 @@ class Button(CtBase):
                  pos: Union[Tuple[str or int], List[str or int]],
                  call_function: Optional[Callable] = None,
                  click_sound: Union[str, pygame.mixer.Sound] = current_path + "/../../assets/audios/Button.wav",
+                 font_path: str = current_path + "/../../assets/fonts/msyh.ttc",
                  font_size: int = 14,
                  size: Union[Tuple[int], List[int]] = (87, 27),
                  text_color: Union[Tuple[int], List[int]] = (0, 0, 0),
@@ -36,6 +37,7 @@ class Button(CtBase):
         :param pos: 按钮绘制位置
         :param call_function: 点击按钮调用的方法
         :param click_sound: 按钮的点击音效
+        :param font_path: 按钮上的文本字体路径
         :param text_color: 按钮上的文本颜色
         :param font_size: 文本大小
         :param size: 按钮大小
@@ -63,12 +65,12 @@ class Button(CtBase):
         # 内边框
         self.inner_rect = self.outer_rect[0] + 1, self.outer_rect[1] + 1, self.outer_rect[2] - 2, self.outer_rect[3] - 2
 
-        self.text = text
+        self.font = pygame.font.Font(font_path, font_size)
+        self.text = self.font.render(text, True, text_color)
+        self.text_color = text_color
+        self.size = size
         self.call_function = call_function
         self.click_sound = click_sound
-        self.text_color = text_color
-        self.font_size = font_size
-        self.size = size
         self.up_color = up_color
         self.down_color = down_color
         self.outer_edge_color = outer_edge_color
@@ -97,7 +99,18 @@ class Button(CtBase):
         # 绘制内框
         pygame.draw.rect(self.button_surface, self.inner_edge_color, self.inner_rect, width=1)
         # 绘制按钮文本
-        draw_text(self.button_surface, self.text, ["center", "center"], self.font_size, self.text_color)
+        draw_text(self.button_surface, self.text, ["center", "center"])
+        return None
+
+    def set_text(self, text) -> None:
+        """设置按钮文本"""
+        self.text = self.font.render(text, True, self.text_color)
+        return None
+
+    def enable(self) -> None:
+        """激活按钮"""
+        self.active = True
+        self.draw_up()
         return None
 
     def update(self, event: pygame.event) -> None:
@@ -142,7 +155,7 @@ if __name__ == "__main__":
     pygame.display.set_caption("测试")
 
     button = Button(screen, "测试按钮", ["center", "center"], call_function=say_hello)
-    button.draw_up()
+    button.enable()
 
     pygame.display.update()
     while True:

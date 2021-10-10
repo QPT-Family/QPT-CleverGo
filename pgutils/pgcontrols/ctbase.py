@@ -11,7 +11,17 @@ class CtBase:
     """pygame控件基类，所有自定义控件均需继承CtBase"""
     def __init__(self):
         # 控件是否被激活
+        self.active = False
+
+    def enable(self) -> None:
+        """激活控件"""
         self.active = True
+        return None
+
+    def frozen(self) -> None:
+        """冻结控件"""
+        self.active = False
+        return None
 
     def update(self, event: pygame.event) -> ...:
         """

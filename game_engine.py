@@ -14,6 +14,7 @@ from pgutils.pgcontrols.button import Button
 from pgutils.pgtools.text import draw_text
 from player import *
 import os
+from typing import List, Tuple, Callable, Union
 
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
 SCREENWIDTH = int(SCREEN_SIZE * 600)  # 屏幕宽度
@@ -48,12 +49,10 @@ IMAGES = {'black': (
     pygame.image.load('assets/pictures/W-13.png').convert_alpha(),
     pygame.image.load('assets/pictures/W-19.png').convert_alpha()
 )}
-
 SOUNDS = {
     'stone': pygame.mixer.Sound('assets/audios/Stone.wav'),
     'button': pygame.mixer.Sound('assets/audios/Button.wav')
 }
-
 MUSICS = [[os.path.splitext(music)[0], pygame.mixer.Sound('assets/musics/' + music)]
           for music in os.listdir('assets/musics')]
 
@@ -91,6 +90,8 @@ class GameEngine:
         self.ct_manager = CtManager()
         # 游戏控制状态
         self.play_state = False
+        # 游戏界面状态: 'play' or 'train'
+        self.surface_state = 'play'
 
         self.player_name = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200', '蒙特卡洛6400',
                             '策略网络', '价值网络', '阿尔法狗', '幼生阿尔法狗'] if board_size == 9 else ['人类玩家', '随机落子']
@@ -108,20 +109,8 @@ class GameEngine:
         # 音乐控制ID
         self.music_control_id = 0
 
-        # 游戏界面初始化
-        self.surface_init()
-
-        if not pygame.mixer.get_busy():
-            MUSICS[self.music_id][1].play()
-
-        # 刷新屏幕
-        pygame.display.update()
-
-    def surface_init(self) -> None:
-        """游戏界面初始化"""
         # 填充背景色
         SCREEN.fill(BGCOLOR)
-
         # 棋盘区域
         self.board_surface = SCREEN.subsurface((0, 0, SCREENHEIGHT, SCREENHEIGHT))
         # 展示落子进度的区域
@@ -134,11 +123,34 @@ class GameEngine:
         self.pmc_surface = SCREEN.subsurface((SCREENHEIGHT + self.speed_surface.get_width(), SCREENHEIGHT / 3.5,
                                               SCREENWIDTH - SCREENHEIGHT - self.speed_surface.get_width(),
                                               SCREENHEIGHT / 5))
-        # 绘制按钮的区域
-        self.button_surface = SCREEN.subsurface((SCREENHEIGHT + self.speed_surface.get_width(),
-                                                 self.taiji_surface.get_height() + self.pmc_surface.get_height(),
-                                                 SCREENWIDTH - SCREENHEIGHT - self.speed_surface.get_width(),
-                                                 SCREENHEIGHT * (1 - 1 / 3.5 - 1 / 5)))
+        # 游戏操作区域区域
+        self.operate_surface = SCREEN.subsurface((SCREENHEIGHT + self.speed_surface.get_width(),
+                                                  self.taiji_surface.get_height() + self.pmc_surface.get_height(),
+                                                  SCREENWIDTH - SCREENHEIGHT - self.speed_surface.get_width(),
+                                                  SCREENHEIGHT * (1 - 1 / 3.5 - 1 / 5)))
+
+        # 初始化按钮控件
+        pmc_button_texts = [self.player_name[self.black_player_id], self.player_name[self.white_player_id],
+                            MUSICS[self.music_id][0], self.music_control_name[self.music_control_id]]
+        pmc_button_call_functions = [self.fct_for_black_player, self.fct_for_white_player,
+                                     self.fct_for_music_choose, self.fct_for_music_control]
+        self.pmc_buttons = self.create_buttons(self.pmc_surface, pmc_button_texts, pmc_button_call_functions,
+                                               [22 * SCREEN_SIZE + 120, self.pmc_surface.get_height() / 20 + 4],
+                                               18 * SCREEN_SIZE, up_color=[202, 171, 125], down_color=[186, 146, 86],
+                                               outer_edge_color=[255, 255, 214], size=[160, 27], font_size=16,
+                                               inner_edge_color=[247, 207, 181], text_color=[253, 253, 19])
+        operate_button_text = ['开始游戏', '弃一手', '悔棋', '重新开始', ('十三' if self.board_size == 9 else '九') + '路棋',
+                               ('十三' if self.board_size == 19 else '十九') + '路棋', '训练幼生Alpha狗', '退出游戏']
+        operate_button_call_functions = [self.fct_for_play_game, self.fct_for_pass, self.fct_for_regret,
+                                         self.fct_for_restart, self.fct_for_new_game_1, self.fct_for_new_game_2,
+                                         self.fct_for_train_alphago, self.fct_for_exit]
+        self.operate_buttons = self.create_buttons(self.operate_surface, operate_button_text,
+                                                   operate_button_call_functions,
+                                                   ["center", self.operate_surface.get_height() / 20], 24 * SCREEN_SIZE,
+                                                   size=[120, 27])
+        # 按钮控件注册
+        self.ct_manager.register(self.pmc_buttons)
+        self.ct_manager.register(self.operate_buttons)
 
         # 棋盘每格的大小
         self.block_size = int(SCREEN_SIZE * 360 / (self.board_size - 1))
@@ -150,12 +162,18 @@ class GameEngine:
         else:
             self.piece_size = IMAGES['black'][3].get_size()
 
-        # 绘制棋盘、太极图、PMC区域、Button区域
+        # 绘制棋盘、太极图、PMC区域、操作区域
         self.draw_board()
         self.draw_taiji()
         self.draw_pmc()
-        self.draw_button()
-        return None
+        self.draw_operate()
+
+        # 音乐播放
+        if not pygame.mixer.get_busy():
+            MUSICS[self.music_id][1].play()
+
+        # 刷新屏幕
+        pygame.display.update()
 
     def draw_board(self) -> None:
         """绘制棋盘"""
@@ -205,48 +223,25 @@ class GameEngine:
         return None
 
     def draw_pmc(self) -> None:
-        # text_color=(253, 253, 19)  金黄色  up_color=(202, 171, 125)  浅黄色  down_color=(186, 146, 86)  深黄色
         self.pmc_surface.fill(BGCOLOR)
         # 绘制4行说明文字
         texts = ['执黑玩家：', '执白玩家：', '对弈音乐：', '音乐控制：']
         pos_next = [22 * SCREEN_SIZE, self.pmc_surface.get_height() / 20]
         for text in texts:
             pos_next = draw_text(self.pmc_surface, text, pos_next, font_size=24)
-        button_texts = [self.player_name[self.black_player_id], self.player_name[self.white_player_id],
-                        MUSICS[self.music_id][0], self.music_control_name[self.music_control_id]]
-        call_functions = [self.fct_for_black_player, self.fct_for_white_player,
-                          self.fct_for_music_choose, self.fct_for_music_control]
-        button_active_states = [["play"], ["play"], ["play", "train"], ["play", "train"]]
-        button_register_names = ['black_player', 'white_player', 'music_name', 'music_control']
-        # 绘制按钮
-        pos_next = [22 * SCREEN_SIZE + 120, self.pmc_surface.get_height() / 20 + 4]
-        for btn_text, call_fct, btn_astate, btn_rname in zip(button_texts, call_functions,
-                                                             button_active_states, button_register_names):
-            button = Button(self.pmc_surface, btn_text, pos_next, call_fct, up_color=[202, 171, 125],
-                            down_color=[186, 146, 86], outer_edge_color=[255, 255, 214], size=[160, 27],
-                            inner_edge_color=[247, 207, 181], text_color=[253, 253, 19], font_size=16)
-            button.draw_up()
-            self.ct_manager.register(btn_rname, button, btn_astate)
-            pos_next[1] += 18 * SCREEN_SIZE
+        # 按钮激活
+        for button in self.pmc_buttons:
+            button.enable()
         return None
 
-    def draw_button(self) -> None:
+    def draw_operate(self) -> None:
         # surface_state为"play"
-        if self.surface_state == "play":
-            self.button_surface.fill(BGCOLOR)
-            # 绘制 开始游戏、弃一手、悔棋、重新开始、XX路棋、XX路棋、退出游戏 按钮
-            button_texts = ['开始游戏', '弃一手', '悔棋', '重新开始', ('十三' if self.board_size == 9 else '九') + '路棋',
-                            ('十三' if self.board_size == 19 else '十九') + '路棋', '训练幼生Alpha狗', '退出游戏']
-            call_functions = [self.fct_for_play_game, self.fct_for_pass, self.fct_for_regret, self.fct_for_restart,
-                              self.fct_for_new_game_1, self.fct_for_new_game_2, self.fct_for_train_alphago, self.fct_for_exit]
-            button_register_names = ['play', 'pass', 'regret', 'restart', 'game1', 'game2', 'train', 'exit']
-            pos_next = ["center", self.button_surface.get_height() / 20]
-            for btn_text, call_fct, btn_rname in zip(button_texts, call_functions, button_register_names):
-                button = Button(self.button_surface, btn_text, pos_next, call_fct, size=[120, 27])
-                button.draw_up()
-                self.ct_manager.register(btn_rname, button, [self.surface_state])
-                pos_next[1] += 24 * SCREEN_SIZE
-        elif self.surface_state == "train":
+        if self.surface_state == 'play':
+            self.operate_surface.fill(BGCOLOR)
+            # 按钮激活
+            for button in self.operate_buttons:
+                button.enable()
+        elif self.surface_state == 'train':
             # surface_state为"train"
             pass
         return None
@@ -379,13 +374,58 @@ class GameEngine:
         # sub_speed_area.fill((106, 255, 143))
         sub_speed_area.fill((15, 255, 255))
 
+    @staticmethod
+    def create_buttons(surface: pygame.Surface,
+                       button_texts: List[str],
+                       call_functions: List[Callable],
+                       first_pos: List[int or float],
+                       button_margin: Union[int, float],
+                       font_size: int = 14,
+                       size: Union[Tuple[int], List[int]] = (87, 27),
+                       text_color: Union[Tuple[int], List[int]] = (0, 0, 0),
+                       up_color: Union[Tuple[int], List[int]] = (225, 225, 225),
+                       down_color: Union[Tuple[int], List[int]] = (190, 190, 190),
+                       outer_edge_color: Union[Tuple[int], List[int]] = (240, 240, 240),
+                       inner_edge_color: Union[Tuple[int], List[int]] = (173, 173, 173)
+                       ) -> List[Button]:
+        """
+        批量地创建Button控件
+
+        :param surface: Button绘制的surface
+        :param button_texts: Button显示文本
+        :param call_functions: Button的点击调用的函数
+        :param first_pos: 第一个按钮绘制的位置
+        :param button_margin: 相邻两个按钮之间的间隔
+        :param font_size: 按钮字体大小
+        :param size: 按钮大小
+        :param text_color: 按钮文本颜色
+        :param up_color: 按钮未被点击时颜色
+        :param down_color: 按钮被点击时颜色
+        :param outer_edge_color: 按钮外边框颜色
+        :param inner_edge_color: 按钮内边框颜色
+        :return: List[Button]
+        """
+        assert len(button_texts) == len(call_functions)
+
+        buttons = []
+
+        pos_next = copy.copy(first_pos)
+        for btn_text, call_fct in zip(button_texts, call_functions):
+            button = Button(surface, btn_text, pos_next, call_fct, size=size, font_size=font_size,
+                            text_color=text_color, up_color=up_color, down_color=down_color,
+                            outer_edge_color=outer_edge_color, inner_edge_color=inner_edge_color)
+            buttons.append(button)
+            pos_next[1] += button_margin
+        return buttons
+
     def music_control(self):
         # 音乐控制
         if not pygame.mixer.get_busy() and self.music_control_id != 3:  # 当歌曲没在播放，且音乐没关掉
             if self.music_control_id == 0:  # 随机播放
                 rand_int = np.random.randint(len(MUSICS))  # 随机获取一首歌
-                while rand_int == self.music_id:
-                    rand_int = np.random.randint(len(MUSICS))
+                if len(MUSICS) > 1:
+                    while rand_int == self.music_id:
+                        rand_int = np.random.randint(len(MUSICS))
                 self.music_id = rand_int
                 MUSICS[self.music_id][1].play()
             elif self.music_control_id == 1:  # 顺序播放
@@ -481,7 +521,7 @@ class GameEngine:
     def fct_for_music_control(self):
         self.music_control_id += 1
         self.music_control_id %= len(self.music_control_name)
-        self.ct_manager.controls['music_control'].text = self.music_control_name[self.music_control_id]
+        self.pmc_buttons[3].set_text(self.music_control_name[self.music_control_id])
         # 说明音乐控制按钮上一次为音乐关
         if self.music_control_id == 0:
             # 须直接将音乐打开
@@ -622,6 +662,6 @@ if __name__ == '__main__':
     go_game = GameEngine()
     while True:
         for event in pygame.event.get():
-            go_game.ct_manager.update(go_game.surface_state, event)
-            go_game.music_control()
+            go_game.ct_manager.update(event)
+        go_game.music_control()
         pygame.display.update()
