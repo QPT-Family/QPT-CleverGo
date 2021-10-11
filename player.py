@@ -138,10 +138,11 @@ class AlphaGoPlayer(Player):
 class PolicyNetPlayer(Player):
     def __init__(self, model_path='models/model.pdparams'):
         super(PolicyNetPlayer, self).__init__()
-
         self.policy_value_net = PolicyValueNet()
-        state_dict = paddle.load(model_path)
-        self.policy_value_net.set_state_dict(state_dict)
+
+        if os.path.exists(model_path):
+            state_dict = paddle.load(model_path)
+            self.policy_value_net.set_state_dict(state_dict)
         self.policy_value_net.eval()
 
     def step(self, game_state):
@@ -166,10 +167,11 @@ class PolicyNetPlayer(Player):
 class ValueNetPlayer(Player):
     def __init__(self, model_path='models/model.pdparams'):
         super(ValueNetPlayer, self).__init__()
-
         self.policy_value_net = PolicyValueNet()
-        state_dict = paddle.load(model_path)
-        self.policy_value_net.set_state_dict(state_dict)
+
+        if os.path.exists(model_path):
+            state_dict = paddle.load(model_path)
+            self.policy_value_net.set_state_dict(state_dict)
         self.policy_value_net.eval()
 
     def step(self, game_state):

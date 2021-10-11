@@ -108,6 +108,10 @@ class GameEngine:
         self.music_id = 0
         # 音乐控制ID
         self.music_control_id = 0
+        # 黑方下一步action
+        self.next_black_action = None
+        # 白方下一步action
+        self.next_white_action = None
 
         # 填充背景色
         SCREEN.fill(BGCOLOR)
@@ -315,6 +319,14 @@ class GameEngine:
             self.play_state = False
         return None
 
+    def update(self) -> None:
+        if self.game_state.turn() == go_engine.BLACK and self.next_black_action is not None:
+            self.play_step(self.next_black_action)
+            self.next_black_action = None
+        if self.game_state.turn() == go_engine.WHITE and self.next_white_action is not None:
+            self.play_step(self.next_white_action)
+            self.next_white_action = None
+
     def game_state_simulator(self) -> GoEngine:
         """返回一个用作模拟的game_state"""
         game_state = GoEngine(board_size=self.board_size, komi=self.komi, record_step=self.record_step,
@@ -443,10 +455,27 @@ class GameEngine:
         elif pygame.mixer.get_busy() and self.music_control_id == 3:  # 音乐关
             MUSICS[self.music_id][1].stop()
 
+    def next_player_and_type(self):
+        """返回下一步落子方及其是否为人类玩家"""
+        if self.game_state.turn() == go_engine.BLACK:
+            if isinstance(self.black_player, HumanPlayer):
+                return go_engine.BLACK, True
+            else:
+                return go_engine.BLACK, False
+        else:
+            if isinstance(self.white_player, HumanPlayer):
+                return go_engine.WHITE, True
+            else:
+                return go_engine.WHITE, False
+
     def fct_for_black_player(self):
+        # 切换玩家，会使游戏暂停
+        self.play_state = False
+        self.operate_play_buttons[0].set_text('开始游戏')
+
         self.black_player_id += 1
         self.black_player_id %= len(self.player_name)
-        pre_player_allow = self.black_player.allow
+
         # 将当前Player设置为响应Player
         if self.black_player_id == 0:  # 人类玩家
             self.black_player = HumanPlayer()
@@ -470,17 +499,18 @@ class GameEngine:
             self.black_player = AlphaGoPlayer(model_path='models/alpha_go.pdparams')
         elif self.black_player_id == 10:  # 幼生阿尔法狗（与阿尔法狗只有参数路径不同）
             self.black_player = AlphaGoPlayer(model_path='models/my_alpha_go.pdparams')
-        else:  # 暂未实现
+        else:
             self.black_player = Player()
-        self.black_player.allow = pre_player_allow
-        if self.play_state and self.game_state.turn() == govars.BLACK:
-            # 在游戏进行状态下切换玩家会导致上一次落子取消
-            self.play_state = True  # 切换对手时会打开重置标志
+        self.pmc_buttons[0].set_text(self.player_name[self.black_player_id])
 
     def fct_for_white_player(self):
+        # 切换玩家，会使游戏暂停
+        self.play_state = False
+        self.operate_play_buttons[0].set_text('开始游戏')
+
         self.white_player_id += 1
         self.white_player_id %= len(self.player_name)
-        pre_player_allow = self.white_player.allow
+
         # 将当前Player设置为响应Player
         if self.white_player_id == 0:  # 人类玩家
             self.white_player = HumanPlayer()
@@ -506,10 +536,7 @@ class GameEngine:
             self.white_player = AlphaGoPlayer(model_path='models/my_alpha_go.pdparams')
         else:  # 暂未实现
             self.white_player = Player()
-        self.white_player.allow = pre_player_allow
-        if self.play_state and self.game_state.turn() == govars.WHITE:
-            # 在游戏进行状态下切换玩家会导致上一次落子取消
-            self.play_state = True
+        self.pmc_buttons[1].set_text(self.player_name[self.white_player_id])
 
     def fct_for_music_choose(self):
         MUSICS[self.music_id][1].stop()
@@ -539,67 +566,56 @@ class GameEngine:
         if self.play_state:
             # 游戏在进行状态时点击该按钮
             self.operate_play_buttons[0].set_text('开始游戏')
-            self.operate_play_buttons[0].draw_up()
             self.play_state = False
         else:
             # 游戏在未进行状态时点击该按钮
             self.operate_play_buttons[0].set_text('暂停游戏')
-            self.operate_play_buttons[0].draw_up()
-            self.game_state.reset()
             self.play_state = True
-            self.black_player.allow = True
-            self.draw_board()
-            self.draw_taiji()
+        self.draw_taiji()
 
     def fct_for_pass(self):
         # pass一手
-        if self.play_state:  # 游戏开始后，弃一手按钮才有用
-            # if not self.current_player_type([HumanPlayer]):
-            #     self.restart = True
-            # else:  # 如果当前玩家是人类玩家，则会允许对手落子（因为自己会pass）
-            #     if self.get_current_player() == govars.BLACK:
-            #         self.white_player.allow = True
-            #     elif self.get_current_player() == govars.WHITE:
-            #         self.black_player.allow = True
-            self.play_step(self.board_size * self.board_size)
-            self.draw_taiji()
+        # 仅在游戏开始且当前玩家为HumanPlayer时有效
+        if self.play_state:
+            next_player, is_human = self.next_player_and_type()
+            if is_human:
+                if next_player == go_engine.BLACK:
+                    self.next_black_action = self.board_size * self.board_size
+                else:
+                    self.next_white_action = self.board_size * self.board_size
 
     def fct_for_regret(self):
         # 悔棋
-        SOUNDS['button'].play()
         if self.play_state:
-            if len(self.game_state.board_state_history) > 2:
-                self.game_state.current_state = self.game_state.board_state_history[-2]
-                self.game_state.board_state_history = self.game_state.board_state_history[:-2]
-                action = self.game_state.action_history[-3]
-                self.game_state.action_history = self.game_state.action_history[:-2]
-                self.draw_board()
-                self.draw_pieces()
-                self.draw_mark(action)
-                self.draw_taiji()
-                # if not self.current_player_type([HumanPlayer]):
-                #     self.restart = True
-            elif len(self.game_state.board_state_history) == 2:
-                self.game_state.current_state = self.game_state.board_state_history[-2]
-                self.game_state.board_state_history = self.game_state.board_state_history[:-2]
-                self.game_state.action_history = self.game_state.action_history[:-2]
-                self.draw_board()
-                self.draw_pieces()
-                self.draw_taiji()
-                # if not self.current_player_type([HumanPlayer]):
-                #     self.restart = True
+            _, is_human = self.next_player_and_type()
+            if is_human:
+                if len(self.game_state.board_state_history) > 2:
+                    self.game_state.current_state = self.game_state.board_state_history[-2]
+                    self.game_state.board_state_history = self.game_state.board_state_history[:-2]
+                    action = self.game_state.action_history[-3]
+                    self.game_state.action_history = self.game_state.action_history[:-2]
+                    self.draw_board()
+                    self.draw_pieces()
+                    self.draw_mark(action)
+                    self.draw_taiji()
+                elif len(self.game_state.board_state_history) == 2:
+                    self.game_state.current_state = self.game_state.board_state_history[-2]
+                    self.game_state.board_state_history = self.game_state.board_state_history[:-2]
+                    self.game_state.action_history = self.game_state.action_history[:-2]
+                    self.draw_board()
+                    self.draw_pieces()
+                    self.draw_taiji()
 
     def fct_for_restart(self):
         # 当重新开始按钮被点击
-        # if not self.current_player_type([HumanPlayer]):
-        #     self.restart = True  # 记录重新开始按钮被点击
         self.game_state.reset()
-        if not self.play_state:
-            self.black_player.allow = True
-        self.play_state = True  # 游戏开始
-        self.white_player.allow = False
         self.draw_board()
-        self.draw_taiji()  # 更改落子提示太极图
+        self.draw_taiji()
+
+        ################################################################################
+        # 这里须重置player
+
+        self.play_state = True
 
     def fct_for_new_game_1(self):
         # 保存音乐信息
@@ -616,10 +632,6 @@ class GameEngine:
         self.music_control_id = music_control_id
         self.pmc_buttons[2].set_text(MUSICS[self.music_id][0])
         self.pmc_buttons[3].set_text(self.music_control_name[self.music_control_id])
-        self.draw_board()
-        self.draw_taiji()
-        self.draw_pmc()
-        self.draw_operate()
 
     def fct_for_new_game_2(self):
         # 保存音乐信息
@@ -636,17 +648,9 @@ class GameEngine:
         self.music_control_id = music_control_id
         self.pmc_buttons[2].set_text(MUSICS[self.music_id][0])
         self.pmc_buttons[3].set_text(self.music_control_name[self.music_control_id])
-        self.draw_board()
-        self.draw_taiji()
-        self.draw_pmc()
-        self.draw_operate()
 
     def fct_for_train_alphago(self):
-        # # 点击训练幼生阿尔法狗按钮，进入训练界面
-        # SOUNDS['button'].play()
-        # self.__init__(self.size, komi=self.komi, reward_method=self.reward_method, mode=self.mode)
-        # self.trainer = TrainPipeline(self, n_playout=100, model_path='model2.pdparams')
-        # self.trainer.run()
+        # 点击训练幼生阿尔法狗按钮，进入训练界面
         pass
 
     @staticmethod
@@ -659,8 +663,10 @@ class GameEngine:
         pass
 
     def fct_for_back(self):
-        # 当返回按钮被点击
-        pass
+        for button in self.operate_train_buttons:
+            button.disable()
+        self.play_state = False
+        self.draw_operate()
 
 
 if __name__ == '__main__':
@@ -669,5 +675,6 @@ if __name__ == '__main__':
     while True:
         for event in pygame.event.get():
             game.ct_manager.update(event)
+        game.update()
         game.music_control()
         pygame.display.update()

@@ -102,9 +102,11 @@ class Button(CtBase):
         draw_text(self.button_surface, self.text, ["center", "center"])
         return None
 
-    def set_text(self, text) -> None:
+    def set_text(self, text: str, draw_update: bool = True) -> None:
         """设置按钮文本"""
         self.text = self.font.render(text, True, self.text_color)
+        if draw_update:
+            self.draw_up()
         return None
 
     def enable(self) -> None:
@@ -128,12 +130,12 @@ class Button(CtBase):
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             # 鼠标左键弹起事件
             if self.pos_in_button(event.pos) and self.is_down:
-                # 调用相应方法
-                if self.call_function is not None:
-                    self.call_function()
                 self.draw_up()
                 # 播放按钮点击音效
                 self.click_sound.play()
+                # 调用相应方法
+                if self.call_function is not None:
+                    self.call_function()
         return None
 
     def pos_in_button(self, pos) -> bool:
