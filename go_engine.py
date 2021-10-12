@@ -153,6 +153,10 @@ class GoEngine:
             winner = govars.BLACK if winner == 1 else govars.WHITE
             return winner
 
+    def action_valid(self, action) -> bool:
+        """判断action是否合法"""
+        return self.valid_moves()[action]
+
     def valid_move_idcs(self) -> np.ndarray:
         """下一步落子有效位置的id"""
         valid_moves = self.valid_moves()

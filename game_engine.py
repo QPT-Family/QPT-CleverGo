@@ -342,15 +342,17 @@ class GameEngine:
         """
         # HumanPlayer落子
         next_player, is_human = self.next_player_and_type()
-        if self.play_state and is_human and pos_in_surface(event.pos, self.board_surface):
-            action = self.mouse_pos_to_action(event.pos)
-
-            if next_player == go_engine.BLACK:
-                self.next_black_action = action
-            else:
-                self.next_white_action = action
+        if self.play_state and is_human:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and \
+                    pos_in_surface(event.pos, self.board_surface):
+                action = self.mouse_pos_to_action(event.pos)
+                if self.game_state.action_valid(action):
+                    if next_player == go_engine.BLACK:
+                        self.next_black_action = action
+                    else:
+                        self.next_white_action = action
         # ct_manager更新
-        game.ct_manager.update(event)
+        self.ct_manager.update(event)
 
     def game_state_simulator(self) -> GoEngine:
         """返回一个用作模拟的game_state"""
@@ -634,6 +636,7 @@ class GameEngine:
     def fct_for_restart(self):
         # 当重新开始按钮被点击
         self.play_state = True
+        self.operate_play_buttons[0].set_text('开始游戏')
         self.game_state.reset()
         self.draw_board()
         self.draw_taiji()
