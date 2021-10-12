@@ -8,6 +8,7 @@ import pygame
 import os
 import copy
 from pgutils.pgtools.text import draw_text
+from pgutils.pgtools.position import pos_in_surface
 from pgutils.pgcontrols.ctbase import CtBase
 from typing import Tuple, List, Union, Callable, Optional
 
@@ -119,17 +120,17 @@ class Button(CtBase):
         """根据pygame.event对按钮进行状态更新和方法调用"""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # 鼠标左键按下
-            if self.pos_in_button(event.pos):
+            if pos_in_surface(event.pos, self.button_surface):
                 self.draw_down()
                 self.is_down = True
         elif event.type == pygame.MOUSEMOTION:
             # 鼠标移动事件，用来检测按钮是否应该弹起
-            if not self.pos_in_button(event.pos) and self.is_down:
+            if not pos_in_surface(event.pos, self.button_surface) and self.is_down:
                 self.draw_up()
                 self.is_down = False
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             # 鼠标左键弹起事件
-            if self.pos_in_button(event.pos) and self.is_down:
+            if pos_in_surface(event.pos, self.button_surface) and self.is_down:
                 self.draw_up()
                 # 播放按钮点击音效
                 self.click_sound.play()
@@ -137,14 +138,6 @@ class Button(CtBase):
                 if self.call_function is not None:
                     self.call_function()
         return None
-
-    def pos_in_button(self, pos) -> bool:
-        """判断pos位置是否在按钮范围内"""
-        offset = self.button_surface.get_abs_offset()
-        if offset[0] <= pos[0] <= (offset[0] + self.size[0]) and offset[1] <= pos[1] <= (offset[1] + self.size[1]):
-            return True
-        else:
-            return False
 
 
 if __name__ == "__main__":

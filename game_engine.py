@@ -12,6 +12,7 @@ from go_engine import GoEngine
 from pgutils.ctmanager import CtManager
 from pgutils.pgcontrols.button import Button
 from pgutils.pgtools.text import draw_text
+from pgutils.pgtools.position import pos_in_surface
 from player import *
 import os
 from typing import List, Tuple, Callable, Union
@@ -319,13 +320,37 @@ class GameEngine:
             self.play_state = False
         return None
 
-    def update(self) -> None:
+    def take_action(self) -> None:
+        """当self.next_black_action或self.next_white_action不为None时候，执行相应动作"""
         if self.game_state.turn() == go_engine.BLACK and self.next_black_action is not None:
             self.play_step(self.next_black_action)
             self.next_black_action = None
         if self.game_state.turn() == go_engine.WHITE and self.next_white_action is not None:
             self.play_step(self.next_white_action)
             self.next_white_action = None
+        return None
+
+    def event_control(self, event: pygame.event.Event) -> None:
+        """
+        游戏控制：根据pygame.event触发相应游戏状态
+
+        1. 当Player为HumanPlayer时控制玩家落子
+        2. 根据event对ct_manager进行更新
+
+        :param event:
+        :return:
+        """
+        # HumanPlayer落子
+        next_player, is_human = self.next_player_and_type()
+        if self.play_state and is_human and pos_in_surface(event.pos, self.board_surface):
+            action = self.mouse_pos_to_action(event.pos)
+
+            if next_player == go_engine.BLACK:
+                self.next_black_action = action
+            else:
+                self.next_white_action = action
+        # ct_manager更新
+        game.ct_manager.update(event)
 
     def game_state_simulator(self) -> GoEngine:
         """返回一个用作模拟的game_state"""
@@ -608,14 +633,13 @@ class GameEngine:
 
     def fct_for_restart(self):
         # 当重新开始按钮被点击
+        self.play_state = True
         self.game_state.reset()
         self.draw_board()
         self.draw_taiji()
 
         ################################################################################
         # 这里须重置player
-
-        self.play_state = True
 
     def fct_for_new_game_1(self):
         # 保存音乐信息
@@ -674,7 +698,7 @@ if __name__ == '__main__':
     game = GameEngine()
     while True:
         for event in pygame.event.get():
-            game.ct_manager.update(event)
-        game.update()
+            game.event_control(event)
+        game.take_action()
         game.music_control()
         pygame.display.update()
