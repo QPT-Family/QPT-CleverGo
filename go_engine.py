@@ -189,7 +189,7 @@ class GoEngine:
         """下一步落子的非真眼有效位置"""
         valid_moves = 1 - self.current_state[govars.INVD_CHNL]
         eyes_mask = 1 - self.eyes()
-        return np.append((valid_moves * eyes_mask).flatten(), 0)
+        return np.append((valid_moves * eyes_mask).flatten(), 1)
 
     def winning(self):
         """
@@ -227,11 +227,11 @@ class GoEngine:
 
         # 对于边角位置
         side_matrix = ndimage.convolve(next_player_pieces, eye_struct, mode='constant', cval=1) == 8
-        side_matrix *= side_mask
+        side_matrix = side_matrix * side_mask
         # 对于非边角位置
         nonside_matrix = ndimage.convolve(next_player_pieces, surround_struct, mode='constant', cval=1) == 4
         nonside_matrix *= ndimage.convolve(next_player_pieces, corner_struct, mode='constant', cval=1) > 2
-        nonside_matrix *= nonside_mask
+        nonside_matrix = nonside_matrix * nonside_mask
 
         return empties * (side_matrix + nonside_matrix)
 

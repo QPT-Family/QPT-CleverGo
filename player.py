@@ -3,30 +3,30 @@
 # @Author  : He Ruizhi
 # @File    : player.py
 # @Software: PyCharm
-
+import threading
 from threading import Thread
 import numpy as np
 from time import sleep
 from mcts import MCTS, evaluate_rollout
-from GymGo.gym_go import govars
 from policy_value_net import PolicyValueNet
 import paddle
 import os
+import go_engine
 
 
 class Player:
     def __init__(self):
-        self.allow = False
+        self.allow = True
+        self.action = None
 
-    def play(self, game_state):
-        if game_state.game_allow:
-            # daemon=True可以使得父进程结束时，所有子进程全部退出，使得点击退出游戏按钮后，不用等待子进程结束
-            Thread(target=self.step, args=(game_state, ), daemon=True).start()
+    def play(self, game):
+        # daemon=True可以使得主线程结束时，所有子线程全部退出，使得点击退出游戏按钮后，不用等待子线程结束
+        Thread(target=self.step, args=(game, ), daemon=True).start()
 
-    def step(self, game_state):
+    def step(self, game):
         """
         根据当前游戏状态，获得执行动作
-        :param game_state: 游戏模拟器对象
+        :param game: 游戏模拟器对象
         :return:
         """
         print('Hello!')
@@ -36,30 +36,29 @@ class HumanPlayer(Player):
     def __init__(self):
         super().__init__()
 
-    def step_with_mouse(self, game_state, mouse_pos):
-        action = game_state.mouse_pos_to_action(mouse_pos)
-        if action is not None and game_state.action_valid(action):  # 鼠标点击位置合法
-            game_state.action_next = action
-        else:  # 鼠标点击位置不合法，将标志重新打开
-            if game_state.get_current_player() == govars.BLACK:
-                game_state.black_player.allow = True
-            elif game_state.get_current_player() == govars.WHITE:
-                game_state.white_player.allow = True
+    # def step_with_mouse(self, game_state, mouse_pos):
+    #     action = game_state.mouse_pos_to_action(mouse_pos)
+    #     if action is not None and game_state.action_valid(action):  # 鼠标点击位置合法
+    #         game_state.action_next = action
+    #     else:  # 鼠标点击位置不合法，将标志重新打开
+    #         if game_state.get_current_player() == govars.BLACK:
+    #             game_state.black_player.allow = True
+    #         elif game_state.get_current_player() == govars.WHITE:
+    #             game_state.white_player.allow = True
 
 
 class RandomPlayer(Player):
     def __init__(self):
         super().__init__()
 
-    def step(self, game_state):
+    def step(self, game):
         sleep(1)
-        game_state.action_next = self.get_action(game_state)
+        action = self.get_action(game)
+        self.action = action
 
     @staticmethod
-    def get_action(game_state):
-        # all_valid_moves = game_state.valid_moves()
-        # valid_move_idcs = np.argwhere(all_valid_moves).flatten()
-        valid_move_idcs = game_state.get_availables_without_eyes()
+    def get_action(game):
+        valid_move_idcs = game.game_state.advanced_valid_move_idcs()
         if len(valid_move_idcs) > 1:
             valid_move_idcs = valid_move_idcs[:-1]
         action = np.random.choice(valid_move_idcs)

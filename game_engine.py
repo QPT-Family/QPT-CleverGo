@@ -109,10 +109,6 @@ class GameEngine:
         self.music_id = 0
         # 音乐控制ID
         self.music_control_id = 0
-        # 黑方下一步action
-        self.next_black_action = None
-        # 白方下一步action
-        self.next_white_action = None
 
         # 填充背景色
         SCREEN.fill(BGCOLOR)
@@ -321,13 +317,25 @@ class GameEngine:
         return None
 
     def take_action(self) -> None:
-        """当self.next_black_action或self.next_white_action不为None时候，执行相应动作"""
-        if self.game_state.turn() == go_engine.BLACK and self.next_black_action is not None:
-            self.play_step(self.next_black_action)
-            self.next_black_action = None
-        if self.game_state.turn() == go_engine.WHITE and self.next_white_action is not None:
-            self.play_step(self.next_white_action)
-            self.next_white_action = None
+        """当self.black_player.action或self.white_player.action不为None时候，执行相应动作"""
+
+        if self.play_state and self.black_player.allow and self.black_player.action is None and \
+                self.game_state.turn() == go_engine.BLACK and not isinstance(self.black_player, HumanPlayer):
+            self.black_player.play(self)
+            self.black_player.allow = False
+        if self.play_state and self.white_player.allow and self.white_player.action is None and \
+                self.game_state.turn() == go_engine.WHITE and not isinstance(self.white_player, HumanPlayer):
+            self.white_player.play(self)
+            self.white_player.allow = False
+
+        if self.play_state and self.game_state.turn() == go_engine.BLACK and self.black_player.action is not None:
+            self.play_step(self.black_player.action)
+            self.black_player.action = None
+            self.white_player.allow = True
+        if self.play_state and self.game_state.turn() == go_engine.WHITE and self.white_player.action is not None:
+            self.play_step(self.white_player.action)
+            self.white_player.action = None
+            self.black_player.allow = True
         return None
 
     def event_control(self, event: pygame.event.Event) -> None:
@@ -348,9 +356,9 @@ class GameEngine:
                 action = self.mouse_pos_to_action(event.pos)
                 if self.game_state.action_valid(action):
                     if next_player == go_engine.BLACK:
-                        self.next_black_action = action
+                        self.black_player.action = action
                     else:
-                        self.next_white_action = action
+                        self.white_player.action = action
         # ct_manager更新
         self.ct_manager.update(event)
 
@@ -565,6 +573,10 @@ class GameEngine:
             self.white_player = Player()
         self.pmc_buttons[1].set_text(self.player_name[self.white_player_id])
 
+    def set_player(self):
+
+        pass
+
     def fct_for_music_choose(self):
         MUSICS[self.music_id][1].stop()
         if self.music_control_id == 0:  # 随机播放
@@ -607,9 +619,9 @@ class GameEngine:
             next_player, is_human = self.next_player_and_type()
             if is_human:
                 if next_player == go_engine.BLACK:
-                    self.next_black_action = self.board_size * self.board_size
+                    self.black_player.action = self.board_size * self.board_size
                 else:
-                    self.next_white_action = self.board_size * self.board_size
+                    self.white_player.action = self.board_size * self.board_size
 
     def fct_for_regret(self):
         # 悔棋
@@ -617,7 +629,7 @@ class GameEngine:
             _, is_human = self.next_player_and_type()
             if is_human:
                 if len(self.game_state.board_state_history) > 2:
-                    self.game_state.current_state = self.game_state.board_state_history[-2]
+                    self.game_state.current_state = self.game_state.board_state_history[-3]
                     self.game_state.board_state_history = self.game_state.board_state_history[:-2]
                     action = self.game_state.action_history[-3]
                     self.game_state.action_history = self.game_state.action_history[:-2]
@@ -626,23 +638,20 @@ class GameEngine:
                     self.draw_mark(action)
                     self.draw_taiji()
                 elif len(self.game_state.board_state_history) == 2:
-                    self.game_state.current_state = self.game_state.board_state_history[-2]
-                    self.game_state.board_state_history = self.game_state.board_state_history[:-2]
-                    self.game_state.action_history = self.game_state.action_history[:-2]
+                    self.game_state.reset()
                     self.draw_board()
-                    self.draw_pieces()
                     self.draw_taiji()
 
     def fct_for_restart(self):
         # 当重新开始按钮被点击
         self.play_state = True
-        self.operate_play_buttons[0].set_text('开始游戏')
+        self.operate_play_buttons[0].set_text('暂停游戏')
         self.game_state.reset()
         self.draw_board()
         self.draw_taiji()
 
-        ################################################################################
-        # 这里须重置player
+
+
 
     def fct_for_new_game_1(self):
         # 保存音乐信息

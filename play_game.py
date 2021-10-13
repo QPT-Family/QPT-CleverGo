@@ -3,8 +3,9 @@
 # @Author  : He Ruizhi
 # @File    : play_game.py
 # @Software: PyCharm
-
+import go_engine
 from game_engine import GameEngine
+from player import HumanPlayer
 import pygame
 import sys
 
@@ -18,7 +19,7 @@ if __name__ == '__main__':
                 sys.exit()
             else:
                 game.event_control(event)
-        # 落子监控
+        # 落子
         game.take_action()
         # 音乐控制
         game.music_control()
