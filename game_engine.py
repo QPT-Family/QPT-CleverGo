@@ -12,6 +12,7 @@ from go_engine import GoEngine
 from pgutils.ctmanager import CtManager
 from pgutils.pgcontrols.button import Button
 from pgutils.pgtools.text import draw_text
+from pgutils.pgtools.information_display import InformationDisplay
 from pgutils.pgtools.position import pos_in_surface
 from player import *
 import os
@@ -159,6 +160,10 @@ class GameEngine:
         self.ct_manager.register(self.operate_play_buttons)
         self.ct_manager.register(self.operate_train_buttons)
 
+        # 创建信息展示器
+        self.info_display = InformationDisplay(self.operate_surface,
+                                               display_size=[self.operate_surface.get_width() - 10, 200])
+
         # 棋盘每格的大小
         self.block_size = int(SCREEN_SIZE * 360 / (self.board_size - 1))
         # 棋子大小
@@ -243,14 +248,16 @@ class GameEngine:
 
     def draw_operate(self) -> None:
         # surface_state为"play"
+        self.operate_surface.fill(BGCOLOR)
         if self.surface_state == 'play':
             self.operate_surface.fill(BGCOLOR)
             # 按钮激活
             for button in self.operate_play_buttons:
                 button.enable()
         elif self.surface_state == 'train':
-            # surface_state为"train"
-            pass
+            self.info_display.show()
+            for button in self.operate_train_buttons:
+                button.enable()
         return None
 
     def draw_pieces(self) -> None:
@@ -683,7 +690,15 @@ class GameEngine:
 
     def fct_for_train_alphago(self):
         # 点击训练幼生阿尔法狗按钮，进入训练界面
-        pass
+        self.surface_state = 'train'
+        self.play_state = False
+
+        self.pmc_buttons[0].disable()
+        self.pmc_buttons[1].disable()
+        for button in self.operate_play_buttons:
+            button.disable()
+
+        self.draw_operate()
 
     @staticmethod
     def fct_for_exit():
@@ -695,9 +710,13 @@ class GameEngine:
         pass
 
     def fct_for_back(self):
+        self.surface_state = 'play'
+        self.play_state = False
         for button in self.operate_train_buttons:
             button.disable()
-        self.play_state = False
+        self.pmc_buttons[0].enable()
+        self.pmc_buttons[1].enable()
+
         self.draw_operate()
 
 

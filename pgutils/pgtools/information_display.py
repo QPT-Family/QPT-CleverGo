@@ -53,7 +53,7 @@ class InformationDisplay:
         # 生成信息存储器
         self.information_container = deque(maxlen=max_show)
 
-        self.screen = screen
+        # self.surface = surface
         self.bg_color = bg_color
         self.font_color = font_color
         self.outer_rect_color = outer_rect_color
@@ -75,6 +75,13 @@ class InformationDisplay:
             line = self.font.render(line, True, self.font_color)
             next_pos = draw_text(self.display_surface, line, next_pos)
         return None
+
+    def show(self):
+        self.display_surface.fill(self.bg_color)
+        # 绘制外框
+        pygame.draw.rect(self.display_surface, self.outer_rect_color, self.outer_rect, width=1)
+        # 绘制内框
+        pygame.draw.rect(self.display_surface, self.inner_rect_color, self.inner_rect, width=1)
 
 
 if __name__ == "__main__":
