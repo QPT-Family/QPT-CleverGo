@@ -3,7 +3,7 @@
 # @Author  : He Ruizhi
 # @File    : player.py
 # @Software: PyCharm
-import threading
+
 from threading import Thread
 import numpy as np
 from time import sleep
@@ -11,13 +11,14 @@ from mcts import MCTS, evaluate_rollout
 from policy_value_net import PolicyValueNet
 import paddle
 import os
-import go_engine
 
 
 class Player:
     def __init__(self):
         self.allow = True
         self.action = None
+        self.name = 'Player'
+        self.valid = True
 
     def play(self, game):
         # daemon=True可以使得主线程结束时，所有子线程全部退出，使得点击退出游戏按钮后，不用等待子线程结束
@@ -35,26 +36,17 @@ class Player:
 class HumanPlayer(Player):
     def __init__(self):
         super().__init__()
-
-    # def step_with_mouse(self, game_state, mouse_pos):
-    #     action = game_state.mouse_pos_to_action(mouse_pos)
-    #     if action is not None and game_state.action_valid(action):  # 鼠标点击位置合法
-    #         game_state.action_next = action
-    #     else:  # 鼠标点击位置不合法，将标志重新打开
-    #         if game_state.get_current_player() == govars.BLACK:
-    #             game_state.black_player.allow = True
-    #         elif game_state.get_current_player() == govars.WHITE:
-    #             game_state.white_player.allow = True
+        self.name = '人类玩家'
 
 
 class RandomPlayer(Player):
     def __init__(self):
         super().__init__()
+        self.name = '随机落子'
 
     def step(self, game):
         sleep(1)
-        action = self.get_action(game)
-        self.action = action
+        self.action = self.get_action(game)
 
     @staticmethod
     def get_action(game):
@@ -68,30 +60,32 @@ class RandomPlayer(Player):
 class MCTSPlayer(Player):
     def __init__(self, c_puct=5, n_playout=20):
         super().__init__()
+        self.name = '蒙特卡洛{}'.format(n_playout)
+        self.speed = None
 
-        def rollout_policy_fn(simulate_game_state):
+        def rollout_policy_fn(game_state_simulator):
             # 选择随机动作
-            availables = simulate_game_state.get_availables()
+            availables = game_state_simulator.valid_move_idcs()
             action_probs = np.random.rand(len(availables))
             return zip(availables, action_probs)
 
-        def policy_value_fn(simulate_game_state):
+        def policy_value_fn(game_state_simulator):
             # 返回均匀概率及通过随机方法获得的节点价值
-            availables = simulate_game_state.get_availables()
+            availables = game_state_simulator.valid_move_idcs()
             action_probs = np.ones(len(availables)) / len(availables)
-            return zip(availables, action_probs), evaluate_rollout(simulate_game_state, rollout_policy_fn)
+            return zip(availables, action_probs), evaluate_rollout(game_state_simulator, rollout_policy_fn)
 
         self.mcts = MCTS(policy_value_fn, c_puct, n_playout)
 
-    def step(self, game_state):
-        game_state.action_next = self.get_action(game_state)
-        game_state.draw_speed(0, 1)  # 获得动作后将速度区域清空
+    def step(self, game):
+        self.action = self.get_action(game)
+        self.speed = (0, 1)  # 获得动作后将速度区域清空
 
     def reset_player(self):
         self.mcts.update_with_move(-1)
 
-    def get_action(self, game_state):
-        move = self.mcts.get_move(game_state)
+    def get_action(self, game):
+        move = self.mcts.get_move(game, self)
         self.mcts.update_with_move(-1)
         return move
 
@@ -99,6 +93,13 @@ class MCTSPlayer(Player):
 class AlphaGoPlayer(Player):
     def __init__(self, model_path='models/pdparams', c_puct=5, n_playout=400, is_selfplay=False):
         super(AlphaGoPlayer, self).__init__()
+        if model_path == 'models/alpha_go.pdparams':
+            self.name = '阿尔法狗'
+        elif model_path == 'models/my_alpha_go.pdparams':
+            self.name = '幼生阿尔法狗'
+        else:
+            self.name = '预期之外的错误名称'
+        self.speed = None
         self.policy_value_net = PolicyValueNet()
 
         if os.path.exists(model_path):
@@ -112,13 +113,13 @@ class AlphaGoPlayer(Player):
     def reset_player(self):
         self.mcts.update_with_move(-1)
 
-    def step(self, game_state):
-        game_state.action_next = self.get_action(game_state)
-        game_state.draw_speed(0, 1)
+    def step(self, game):
+        self.action = self.get_action(game)
+        self.speed = (0, 1)
 
-    def get_action(self, game_state, temp=1e-3, return_probs=False):
-        move_probs = np.zeros(game_state.size * game_state.size + 1)
-        acts, probs = self.mcts.get_move_probs(game_state, temp)
+    def get_action(self, game, temp=1e-3, return_probs=False):
+        move_probs = np.zeros(game.board_size ** 2 + 1)
+        acts, probs = self.mcts.get_move_probs(game, temp, self)
         move_probs[list(acts)] = probs
         if self.is_selfplay:
             # 增加Dirichlet噪声用于探索（在训练时候）
@@ -137,6 +138,7 @@ class AlphaGoPlayer(Player):
 class PolicyNetPlayer(Player):
     def __init__(self, model_path='models/model.pdparams'):
         super(PolicyNetPlayer, self).__init__()
+        self.name = '策略网络'
         self.policy_value_net = PolicyValueNet()
 
         if os.path.exists(model_path):
@@ -144,19 +146,19 @@ class PolicyNetPlayer(Player):
             self.policy_value_net.set_state_dict(state_dict)
         self.policy_value_net.eval()
 
-    def step(self, game_state):
+    def step(self, game):
         sleep(1)
-        game_state.action_next = self.get_action(game_state)
+        self.action = self.get_action(game)
 
-    def get_action(self, game_state):
-        valid_move_idcs = game_state.valid_moves()
-        valid_move_idcs = paddle.to_tensor(valid_move_idcs)
+    def get_action(self, game):
+        valid_moves = game.game_state.valid_moves()
+        valid_moves = paddle.to_tensor(valid_moves)
 
-        current_state = game_state.get_board_state_for_nn()
+        current_state = game.game_state.get_board_state()
         current_state = paddle.to_tensor([current_state], dtype='float32')
         probs, _ = self.policy_value_net(current_state)
         probs = probs[0]
-        probs *= valid_move_idcs
+        probs *= valid_moves
         probs = probs / paddle.sum(probs)
 
         action = np.random.choice(range(82), p=probs.numpy())
@@ -166,6 +168,7 @@ class PolicyNetPlayer(Player):
 class ValueNetPlayer(Player):
     def __init__(self, model_path='models/model.pdparams'):
         super(ValueNetPlayer, self).__init__()
+        self.name = '价值网络'
         self.policy_value_net = PolicyValueNet()
 
         if os.path.exists(model_path):
@@ -173,22 +176,21 @@ class ValueNetPlayer(Player):
             self.policy_value_net.set_state_dict(state_dict)
         self.policy_value_net.eval()
 
-    def step(self, game_state):
+    def step(self, game):
         sleep(1)
-        game_state.action_next = self.get_action(game_state)
+        self.action = self.get_action(game)
 
-    def get_action(self, game_state):
-        valid_move_idcs = game_state.valid_moves()
+    def get_action(self, game):
+        valid_move_idcs = game.game_state.valid_move_idcs()
 
         # 计算所有可落子位置，对手的局面价值，选择对手局面价值最小的落子
-        actions = np.argwhere(valid_move_idcs).flatten()
         max_value = 1
-        action = 81
-        for simulate_action in actions:
-            simulate_game_state = game_state.get_simulate_game_state()
+        action = game.board_size ** 2
+        for simulate_action in valid_move_idcs:
+            simulate_game_state = game.game_state_simulator()
             simulate_game_state.step(simulate_action)
 
-            current_state = simulate_game_state.get_board_state_for_nn()
+            current_state = simulate_game_state.get_board_state()
             current_state = paddle.to_tensor([current_state], dtype='float32')
 
             _, value = self.policy_value_net(current_state)

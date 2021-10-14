@@ -94,8 +94,6 @@ class GameEngine:
         # 游戏界面状态: 'play' or 'train'
         self.surface_state = 'play'
 
-        self.player_name = ['人类玩家', '随机落子', '蒙特卡洛400', '蒙特卡洛800', '蒙特卡洛1600', '蒙特卡洛3200', '蒙特卡洛6400',
-                            '策略网络', '价值网络', '阿尔法狗', '幼生阿尔法狗'] if board_size == 9 else ['人类玩家', '随机落子']
         self.music_control_name = ['随机播放', '顺序播放', '单曲循环', '音乐关']
         # 黑方玩家
         self.black_player = HumanPlayer()
@@ -131,7 +129,7 @@ class GameEngine:
                                                   SCREENHEIGHT * (1 - 1 / 3.5 - 1 / 5)))
 
         # 初始化按钮控件
-        pmc_button_texts = [self.player_name[self.black_player_id], self.player_name[self.white_player_id],
+        pmc_button_texts = [self.black_player.name, self.white_player.name,
                             MUSICS[self.music_id][0], self.music_control_name[self.music_control_id]]
         pmc_button_call_functions = [self.fct_for_black_player, self.fct_for_white_player,
                                      self.fct_for_music_choose, self.fct_for_music_control]
@@ -336,6 +334,15 @@ class GameEngine:
             self.play_step(self.white_player.action)
             self.white_player.action = None
             self.black_player.allow = True
+
+        if isinstance(self.black_player, MCTSPlayer) or isinstance(self.black_player, AlphaGoPlayer):
+            if self.black_player.speed is not None:
+                self.draw_speed(self.black_player.speed[0], self.black_player.speed[1])
+                self.black_player.speed = None
+        if isinstance(self.white_player, MCTSPlayer) or isinstance(self.white_player, AlphaGoPlayer):
+            if self.white_player.speed is not None:
+                self.draw_speed(self.white_player.speed[0], self.white_player.speed[1])
+                self.white_player.speed = None
         return None
 
     def event_control(self, event: pygame.event.Event) -> None:
@@ -420,8 +427,8 @@ class GameEngine:
         """一个简单绘制落子进度的方法"""
         self.speed_surface.fill(BGCOLOR)
         sub_speed_area = self.speed_surface.subsurface((0, SCREENHEIGHT - round(count / total * SCREENHEIGHT),
-                                                        self.speed_surface.get_width(), round(count / total * SCREENHEIGHT)))
-        # sub_speed_area.fill((106, 255, 143))
+                                                        self.speed_surface.get_width(),
+                                                        round(count / total * SCREENHEIGHT)))
         sub_speed_area.fill((15, 255, 255))
         return None
 
@@ -508,74 +515,61 @@ class GameEngine:
         self.play_state = False
         self.operate_play_buttons[0].set_text('开始游戏')
 
+        self.black_player.valid = False
+        if self.game_state.turn() == go_engine.BLACK:
+            if isinstance(self.black_player, MCTSPlayer) or isinstance(self.black_player, AlphaGoPlayer):
+                self.draw_speed(0, 1)
+
         self.black_player_id += 1
-        self.black_player_id %= len(self.player_name)
+        # player_num为游戏支持的Player总数
+        player_num = 11 if self.board_size == 9 else 2
+        self.black_player_id %= player_num
 
         # 将当前Player设置为响应Player
-        if self.black_player_id == 0:  # 人类玩家
-            self.black_player = HumanPlayer()
-        elif self.black_player_id == 1:  # 随机落子
-            self.black_player = RandomPlayer()
-        elif self.black_player_id == 2:  # 蒙特卡洛400
-            self.black_player = MCTSPlayer(n_playout=40)
-        elif self.black_player_id == 3:  # 蒙特卡洛800
-            self.black_player = MCTSPlayer(n_playout=800)
-        elif self.black_player_id == 4:  # 蒙特卡洛1600
-            self.black_player = MCTSPlayer(n_playout=1600)
-        elif self.black_player_id == 5:  # 蒙特卡洛3200
-            self.black_player = MCTSPlayer(n_playout=3200)
-        elif self.black_player_id == 6:  # 蒙特卡洛6400
-            self.black_player = MCTSPlayer(n_playout=6400)
-        elif self.black_player_id == 7:  # 策略网络
-            self.black_player = PolicyNetPlayer(model_path='models/alpha_go.pdparams')
-        elif self.black_player_id == 8:  # 价值网络
-            self.black_player = ValueNetPlayer(model_path='models/alpha_go.pdparams')
-        elif self.black_player_id == 9:  # 阿尔法狗
-            self.black_player = AlphaGoPlayer(model_path='models/alpha_go.pdparams')
-        elif self.black_player_id == 10:  # 幼生阿尔法狗（与阿尔法狗只有参数路径不同）
-            self.black_player = AlphaGoPlayer(model_path='models/my_alpha_go.pdparams')
-        else:
-            self.black_player = Player()
-        self.pmc_buttons[0].set_text(self.player_name[self.black_player_id])
+        self.black_player = self.create_player(self.black_player_id)
+
+        self.pmc_buttons[0].set_text(self.black_player.name)
 
     def fct_for_white_player(self):
         # 切换玩家，会使游戏暂停
         self.play_state = False
         self.operate_play_buttons[0].set_text('开始游戏')
 
+        self.white_player.valid = False
+        if self.game_state.turn() == go_engine.WHITE:
+            if isinstance(self.white_player, MCTSPlayer) or isinstance(self.white_player, AlphaGoPlayer):
+                self.draw_speed(0, 1)
+
         self.white_player_id += 1
-        self.white_player_id %= len(self.player_name)
+        # player_num为游戏支持的Player总数
+        player_num = 11 if self.board_size == 9 else 2
+        self.white_player_id %= player_num
 
         # 将当前Player设置为响应Player
-        if self.white_player_id == 0:  # 人类玩家
-            self.white_player = HumanPlayer()
-        elif self.white_player_id == 1:  # 随机落子
-            self.white_player = RandomPlayer()
-        elif self.white_player_id == 2:  # 蒙特卡洛400
-            self.white_player = MCTSPlayer(n_playout=40)
-        elif self.white_player_id == 3:  # 蒙特卡洛800
-            self.white_player = MCTSPlayer(n_playout=800)
-        elif self.white_player_id == 4:  # 蒙特卡洛1600
-            self.white_player = MCTSPlayer(n_playout=1600)
-        elif self.white_player_id == 5:  # 蒙特卡洛3200
-            self.white_player = MCTSPlayer(n_playout=3200)
-        elif self.white_player_id == 6:  # 蒙特卡洛6400
-            self.white_player = MCTSPlayer(n_playout=6400)
-        elif self.white_player_id == 7:  # 策略网络
-            self.white_player = PolicyNetPlayer(model_path='models/alpha_go.pdparams')
-        elif self.white_player_id == 8:  # 价值网络
-            self.white_player = ValueNetPlayer(model_path='models/alpha_go.pdparams')
-        elif self.white_player_id == 9:  # 阿尔法狗
-            self.white_player = AlphaGoPlayer(model_path='models/alpha_go.pdparams')
-        elif self.white_player_id == 10:  # 幼生阿尔法狗
-            self.white_player = AlphaGoPlayer(model_path='models/my_alpha_go.pdparams')
-        else:  # 暂未实现
-            self.white_player = Player()
-        self.pmc_buttons[1].set_text(self.player_name[self.white_player_id])
+        self.white_player = self.create_player(self.white_player_id)
 
-    def set_player(self):
+        self.pmc_buttons[1].set_text(self.white_player.name)
 
-        pass
+    @staticmethod
+    def create_player(player_id: int):
+        """根据player_id创建player"""
+        if player_id == 0:
+            player = HumanPlayer()
+        elif player_id == 1:
+            player = RandomPlayer()
+        elif player_id in [2, 3, 4, 5, 6]:
+            player = MCTSPlayer(n_playout=400 * (2 ** (player_id - 2)))
+        elif player_id == 7:
+            player = PolicyNetPlayer(model_path='models/alpha_go.pdparams')
+        elif player_id == 8:
+            player = ValueNetPlayer(model_path='models/alpha_go.pdparams')
+        elif player_id == 9:
+            player = AlphaGoPlayer(model_path='models/alpha_go.pdparams')
+        elif player_id == 10:
+            player = AlphaGoPlayer(model_path='models/my_alpha_go.pdparams')
+        else:
+            player = Player()
+        return player
 
     def fct_for_music_choose(self):
         MUSICS[self.music_id][1].stop()
@@ -619,9 +613,9 @@ class GameEngine:
             next_player, is_human = self.next_player_and_type()
             if is_human:
                 if next_player == go_engine.BLACK:
-                    self.black_player.action = self.board_size * self.board_size
+                    self.black_player.action = self.board_size ** 2
                 else:
-                    self.white_player.action = self.board_size * self.board_size
+                    self.white_player.action = self.board_size ** 2
 
     def fct_for_regret(self):
         # 悔棋
@@ -650,8 +644,10 @@ class GameEngine:
         self.draw_board()
         self.draw_taiji()
 
-
-
+        self.black_player.valid = False
+        self.white_player.valid = False
+        self.black_player = self.create_player(self.black_player_id)
+        self.white_player = self.create_player(self.white_player_id)
 
     def fct_for_new_game_1(self):
         # 保存音乐信息

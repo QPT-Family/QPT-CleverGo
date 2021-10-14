@@ -3,9 +3,8 @@
 # @Author  : He Ruizhi
 # @File    : play_game.py
 # @Software: PyCharm
-import go_engine
+
 from game_engine import GameEngine
-from player import HumanPlayer
 import pygame
 import sys
 

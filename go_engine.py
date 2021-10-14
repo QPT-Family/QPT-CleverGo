@@ -136,7 +136,7 @@ class GoEngine:
             self.board_state[-1] = np.copy(self.current_state[govars.TURN_CHNL])
         return np.copy(self.board_state)
 
-    def board_state(self) -> np.ndarray:
+    def get_board_state(self) -> np.ndarray:
         """用于训练神经网络的棋盘状态矩阵"""
         return np.copy(self.board_state)
 

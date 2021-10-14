@@ -65,8 +65,8 @@ class PolicyValueNet(paddle.nn.Layer):
         :param simulate_game_state:
         :return:
         """
-        legal_positions = simulate_game_state.get_availables()  # 合法的落子位置
-        current_state = paddle.to_tensor(simulate_game_state.get_board_state_for_nn()[np.newaxis], dtype='float32')
+        legal_positions = simulate_game_state.valid_move_idcs()
+        current_state = paddle.to_tensor(simulate_game_state.get_board_state()[np.newaxis], dtype='float32')
         act_probs, value = self.forward(current_state)
         act_probs = zip(legal_positions, act_probs.numpy().flatten()[legal_positions])
         return act_probs, value

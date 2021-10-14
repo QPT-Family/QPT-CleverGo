@@ -27,7 +27,7 @@ def evaluate_rollout(simulate_game_state, rollout_policy_fn, limit=1000):
     game_state_copy = copy.deepcopy(simulate_game_state)
     player = game_state_copy.turn()
     for _ in range(limit):
-        end, winner = game_state_copy.game_end()
+        end, winner = game_state_copy.game_ended(), game_state_copy.winner()
         if end:
             break
         action_probs = rollout_policy_fn(game_state_copy)
@@ -147,7 +147,7 @@ class MCTS:
         # 一个以当前玩家视角看待的在[-1, 1]之间的v值
         action_probs, leaf_value = self.policy(simulate_game_state)
         # 检查模拟游戏是否结束
-        end, winner = simulate_game_state.game_end()
+        end, winner = simulate_game_state.game_ended(), simulate_game_state.winner()
         if not end:  # 没结束则扩展
             node.expand(action_probs)
         else:
@@ -162,15 +162,20 @@ class MCTS:
         # 但是做出下一步落子的是根节点对应player的对手
         node.update_recursive(-leaf_value)
 
-    def get_move_probs(self, go_game, temp=1e-3):
+    def get_move_probs(self, game, temp=1e-3, player=None):
         """
         执行n_playout次模拟，并根据子节点的访问次数，获得每个动作对应的概率
-        :param go_game: 游戏模拟器
+        :param game: 游戏模拟器
         :param temp: 制探索水平的温度参数
+        :param player: 调用该函数的player，用于进行进度绘制
         :return:
         """
-        for _ in range(self.n_playout):
-            simulate_game_state = go_game.get_simulate_game_state()
+        for i in range(self.n_playout):
+            if not player.valid:
+                return -1
+            if player is not None:
+                player.speed = (i + 1, self.n_playout)
+            simulate_game_state = game.game_state_simulator()
             self.playout(simulate_game_state)
         # 基于节点访问次数，计算每个动作对应的概率
         act_visits = [(act, node.n_visits)
@@ -179,19 +184,20 @@ class MCTS:
         act_probs = softmax(1.0 / temp * np.log(np.array(visits) + 1e-10))
         return acts, act_probs
 
-    def get_move(self, go_game):
+    def get_move(self, game, player=None):
         """
         执行n_playout次模拟，返回访问次数最多的动作
-        :param go_game: 游戏模拟器
+        :param game: 游戏模拟器
+        :param player: 调用该函数的player，用于进行进度绘制
         :return: 返回访问次数最多的动作
         """
         for i in range(self.n_playout):
-            go_game.draw_speed(i + 1, self.n_playout)
-            game_state = go_game.get_simulate_game_state()
-            self.playout(game_state)
-            if go_game.restart:
-                go_game.draw_speed(0, self.n_playout)
+            if not player.valid:
                 return -1
+            if player is not None:
+                player.speed = (i + 1, self.n_playout)
+            game_state = game.game_state_simulator()
+            self.playout(game_state)
         return max(self.root.children.items(), key=lambda act_node: act_node[1].n_visits)[0]
 
     def update_with_move(self, last_move):
