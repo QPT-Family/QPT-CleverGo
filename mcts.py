@@ -175,7 +175,7 @@ class MCTS:
                 return -1
             if player is not None:
                 player.speed = (i + 1, self.n_playout)
-            simulate_game_state = game.game_state_simulator()
+            simulate_game_state = game.game_state_simulator(player.is_selfplay)
             self.playout(simulate_game_state)
         # 基于节点访问次数，计算每个动作对应的概率
         act_visits = [(act, node.n_visits)

@@ -101,11 +101,11 @@ class AlphaGoPlayer(Player):
             self.name = '预期之外的错误名称'
         self.speed = None
         self.policy_value_net = PolicyValueNet()
+        self.policy_value_net.eval()
 
         if os.path.exists(model_path):
             state_dict = paddle.load(model_path)
             self.policy_value_net.set_state_dict(state_dict)
-        self.policy_value_net.train() if is_selfplay else self.policy_value_net.eval()
 
         self.mcts = MCTS(self.policy_value_net.policy_value_fn, c_puct, n_playout)
         self.is_selfplay = is_selfplay

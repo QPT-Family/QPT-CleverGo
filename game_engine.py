@@ -18,6 +18,7 @@ from player import *
 import os
 from typing import List, Tuple, Callable, Union
 from datetime import datetime
+from trainer import Trainer
 
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
 SCREENWIDTH = int(SCREEN_SIZE * 600)  # 屏幕宽度
@@ -89,12 +90,17 @@ class GameEngine:
         # 初始化GoEngine
         self.game_state = GoEngine(board_size=board_size, komi=komi, record_step=record_step,
                                    state_format=state_format, record_last=record_last)
+        # 初始化训练器
+        self.trainer = Trainer()
+        self.train_game_state = None
+
         # 初始化pygame控件管理器
         self.ct_manager = CtManager()
         # 游戏控制状态
         self.play_state = False
         # 游戏界面状态: 'play' or 'train'
         self.surface_state = 'play'
+        self.train_state = False
 
         self.music_control_name = ['随机播放', '顺序播放', '单曲循环', '音乐关']
         # 黑方玩家
@@ -200,9 +206,11 @@ class GameEngine:
         pygame.draw.rect(self.board_surface, BLACK, rect_pos, 3)
         # 绘制棋盘内线条
         for i in range(self.board_size - 2):
-            pygame.draw.line(self.board_surface, BLACK, (SCREEN_SIZE * 20, SCREEN_SIZE * 20 + (i + 1) * self.block_size),
+            pygame.draw.line(self.board_surface, BLACK,
+                             (SCREEN_SIZE * 20, SCREEN_SIZE * 20 + (i + 1) * self.block_size),
                              (SCREEN_SIZE * 380, SCREEN_SIZE * 20 + (i + 1) * self.block_size), 2)
-            pygame.draw.line(self.board_surface, BLACK, (SCREEN_SIZE * 20 + (i + 1) * self.block_size, SCREEN_SIZE * 20),
+            pygame.draw.line(self.board_surface, BLACK,
+                             (SCREEN_SIZE * 20 + (i + 1) * self.block_size, SCREEN_SIZE * 20),
                              (SCREEN_SIZE * 20 + (i + 1) * self.block_size, SCREEN_SIZE * 380), 2)
         # 绘制天元和星位
         if self.board_size == 9:
@@ -217,22 +225,28 @@ class GameEngine:
             pygame.draw.circle(self.board_surface, BLACK, pos, 5, 0)
         return None
 
-    def draw_taiji(self) -> None:
+    def draw_taiji(self, mode='play') -> None:
         """绘制表示下一手落子方的太极图"""
+        if mode == 'play':
+            game_state = self.game_state
+        else:
+            game_state = self.train_game_state
+
         black_pos = (self.taiji_surface.get_width() - IMAGES['black'][0].get_width()) / 2, \
                     (self.taiji_surface.get_height() - IMAGES['black'][0].get_height()) / 2
         white_pos = black_pos[0] + 44, black_pos[1]
         # 背景颜色填充
         self.taiji_surface.fill(BGCOLOR)
-        if not self.play_state:
+        if not self.play_state and self.surface_state != 'train' or \
+                self.surface_state == 'train' and not self.train_state:
             # 游戏未进行状态
             self.taiji_surface.blit(IMAGES['black'][0], black_pos)
             self.taiji_surface.blit(IMAGES['white'][0], white_pos)
         else:
-            if self.game_state.turn() == go_engine.BLACK:
+            if game_state.turn() == go_engine.BLACK:
                 # 下一手为黑方
                 self.taiji_surface.blit(IMAGES['black'][0], black_pos)
-            elif self.game_state.turn() == go_engine.WHITE:
+            elif game_state.turn() == go_engine.WHITE:
                 # 下一手为白方
                 self.taiji_surface.blit(IMAGES['white'][0], white_pos)
         return None
@@ -265,22 +279,27 @@ class GameEngine:
             self.operate_play_buttons[6].disable()
         return None
 
-    def draw_pieces(self) -> None:
+    def draw_pieces(self, mode='play') -> None:
         """绘制棋子方法"""
+        if mode == 'play':
+            game_state = self.game_state
+        else:
+            game_state = self.train_game_state
+
         for i in range(self.board_size):
             for j in range(self.board_size):
                 # 确定绘制棋子的坐标
                 pos = (SCREEN_SIZE * 22 + self.block_size * j - self.piece_size[1] / 2,
                        SCREEN_SIZE * 19 + self.block_size * i - self.piece_size[0] / 2)
                 # 查看相应位置有无黑色棋子或白色棋子
-                if self.game_state.current_state[go_engine.BLACK][i, j] == 1:
+                if game_state.current_state[go_engine.BLACK][i, j] == 1:
                     if self.board_size == 9:
                         self.board_surface.blit(IMAGES['black'][1], pos)
                     elif self.board_size == 13:
                         self.board_surface.blit(IMAGES['black'][2], pos)
                     else:
                         self.board_surface.blit(IMAGES['black'][3], pos)
-                elif self.game_state.current_state[go_engine.WHITE][i, j] == 1:
+                elif game_state.current_state[go_engine.WHITE][i, j] == 1:
                     if self.board_size == 9:
                         self.board_surface.blit(IMAGES['white'][1], pos)
                     elif self.board_size == 13:
@@ -289,11 +308,19 @@ class GameEngine:
                         self.board_surface.blit(IMAGES['white'][3], pos)
         return None
 
-    def draw_mark(self, action) -> None:
+    def draw_mark(self, action, mode='play') -> None:
         """根据最近落子的棋盘坐标，绘制标记"""
+        if action == self.board_size ** 2:
+            return None
+
+        if mode == 'play':
+            game_state = self.game_state
+        else:
+            game_state = self.train_game_state
+
         row = action // self.board_size
         col = action % self.board_size
-        if self.game_state.turn() == go_engine.WHITE:
+        if game_state.turn() == go_engine.WHITE:
             if self.board_size == 9:
                 pos = (SCREEN_SIZE * 19 + col * self.block_size, SCREEN_SIZE * 22 + row * self.block_size)
             elif self.board_size == 13:
@@ -325,6 +352,14 @@ class GameEngine:
             self.draw_over()
             self.play_state = False
         return None
+
+    def train_step(self, action):
+        self.train_game_state.step(action)
+        if action != self.board_size ** 2:
+            self.draw_board()
+            self.draw_pieces(mode='train')
+            self.draw_mark(action, mode='train')
+        self.draw_taiji(mode='train')
 
     def take_action(self) -> None:
         """
@@ -387,15 +422,22 @@ class GameEngine:
         # ct_manager更新
         self.ct_manager.update(event)
 
-    def game_state_simulator(self) -> GoEngine:
+    def game_state_simulator(self, train=False) -> GoEngine:
         """返回一个用作模拟的game_state"""
         game_state = GoEngine(board_size=self.board_size, komi=self.komi, record_step=self.record_step,
                               state_format=self.state_format, record_last=self.record_last)
-        game_state.current_state = np.copy(self.game_state.current_state)
-        game_state.board_state = np.copy(self.game_state.board_state)
-        game_state.board_state_history = copy.copy(self.game_state.board_state_history)
-        game_state.action_history = copy.copy(self.game_state.action_history)
-        game_state.done = self.game_state.done
+        if not train:
+            game_state.current_state = np.copy(self.game_state.current_state)
+            game_state.board_state = np.copy(self.game_state.board_state)
+            game_state.board_state_history = copy.copy(self.game_state.board_state_history)
+            game_state.action_history = copy.copy(self.game_state.action_history)
+            game_state.done = self.game_state.done
+        else:
+            game_state.current_state = np.copy(self.train_game_state.current_state)
+            game_state.board_state = np.copy(self.train_game_state.board_state)
+            game_state.board_state_history = copy.copy(self.train_game_state.board_state_history)
+            game_state.action_history = copy.copy(self.train_game_state.action_history)
+            game_state.done = self.train_game_state.done
         return game_state
 
     def mouse_pos_to_action(self, mouse_pos):
@@ -704,6 +746,11 @@ class GameEngine:
         self.surface_state = 'train'
         self.play_state = False
 
+        # 初始化train_game_state
+        self.train_game_state = GoEngine(board_size=self.board_size, komi=self.komi, record_step=self.record_step,
+                                         state_format=self.state_format, record_last=self.record_last)
+        self.draw_board()
+
         self.pmc_buttons[0].set_text('训练状态')
         self.pmc_buttons[0].disable()
         self.pmc_buttons[1].set_text('训练状态')
@@ -725,11 +772,22 @@ class GameEngine:
 
     def fct_for_train(self):
         # 当开始训练按钮被点击
-        pass
+        if not self.train_state:
+            self.train_state = True
+            # 开启自对弈线程
+            self.trainer.self_play(self)
+            # 开启训练线程
+            self.trainer.network_update(self)
 
     def fct_for_back(self):
         self.surface_state = 'play'
         self.play_state = False
+        self.train_state = False
+
+        self.draw_board()
+        self.draw_pieces()
+        self.draw_mark(self.game_state.action_history[-1])
+
         self.operate_play_buttons[0].set_text('开始游戏')
         for button in self.operate_train_buttons:
             button.disable()
@@ -745,8 +803,8 @@ if __name__ == '__main__':
     # 功能测试
     game = GameEngine()
     while True:
-        for event in pygame.event.get():
-            game.event_control(event)
+        for evt in pygame.event.get():
+            game.event_control(evt)
         game.take_action()
         game.music_control()
         pygame.display.update()
