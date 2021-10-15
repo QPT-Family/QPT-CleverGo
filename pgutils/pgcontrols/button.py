@@ -116,6 +116,12 @@ class Button(CtBase):
         self.draw_up()
         return None
 
+    def disable(self) -> None:
+        """冻结按钮"""
+        self.active = False
+        self.draw_down()
+        return None
+
     def update(self, event: pygame.event) -> None:
         """根据pygame.event对按钮进行状态更新和方法调用"""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

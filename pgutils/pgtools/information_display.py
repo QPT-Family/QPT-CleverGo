@@ -37,10 +37,10 @@ class InformationDisplay:
         :param font_path: 字体文件路径
         """
         if display_pos is None:
-            display_pos = [3, 3]
+            display_pos = [20, 20]
         if display_size is None:
             surface_width, surface_height = surface.get_width(), surface.get_height()
-            display_size = [surface_width - display_pos[0] - 3, surface_height - display_pos[1] - 3]
+            display_size = [surface_width - display_pos[0] * 2, surface_height - display_pos[1] * 2]
 
         # 创建subsurface
         self.display_surface = surface.subsurface((*display_pos, *display_size))
@@ -53,7 +53,8 @@ class InformationDisplay:
         # 生成信息存储器
         self.information_container = deque(maxlen=max_show)
 
-        # self.surface = surface
+        self.display_pos = display_pos
+        self.display_size = display_size
         self.bg_color = bg_color
         self.font_color = font_color
         self.outer_rect_color = outer_rect_color
@@ -76,12 +77,18 @@ class InformationDisplay:
             next_pos = draw_text(self.display_surface, line, next_pos)
         return None
 
-    def show(self):
+    def refresh(self):
         self.display_surface.fill(self.bg_color)
         # 绘制外框
         pygame.draw.rect(self.display_surface, self.outer_rect_color, self.outer_rect, width=1)
         # 绘制内框
         pygame.draw.rect(self.display_surface, self.inner_rect_color, self.inner_rect, width=1)
+
+        # 绘制文本
+        next_pos = [3, 2]
+        for line in self.information_container:
+            line = self.font.render(line, True, self.font_color)
+            next_pos = draw_text(self.display_surface, line, next_pos)
 
 
 if __name__ == "__main__":

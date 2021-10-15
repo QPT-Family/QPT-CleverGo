@@ -17,6 +17,7 @@ from pgutils.pgtools.position import pos_in_surface
 from player import *
 import os
 from typing import List, Tuple, Callable, Union
+from datetime import datetime
 
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
 SCREENWIDTH = int(SCREEN_SIZE * 600)  # 屏幕宽度
@@ -129,6 +130,10 @@ class GameEngine:
                                                   SCREENWIDTH - SCREENHEIGHT - self.speed_surface.get_width(),
                                                   SCREENHEIGHT * (1 - 1 / 3.5 - 1 / 5)))
 
+        # 创建信息展示器
+        self.info_display = InformationDisplay(self.operate_surface, max_show=10, display_pos=[15, 15],
+                                               display_size=[self.operate_surface.get_width() - 30, 230])
+
         # 初始化按钮控件
         pmc_button_texts = [self.black_player.name, self.white_player.name,
                             MUSICS[self.music_id][0], self.music_control_name[self.music_control_id]]
@@ -150,19 +155,17 @@ class GameEngine:
                                                         24 * SCREEN_SIZE, size=[120, 27])
         operate_train_button_texts = ['开始训练', '返回']
         operate_train_button_call_functions = [self.fct_for_train, self.fct_for_back]
-        self.operate_train_buttons = self.create_buttons(self.operate_surface, operate_train_button_texts,
-                                                         operate_train_button_call_functions,
-                                                         ['center', self.operate_surface.get_height() * 0.8],
-                                                         24 * SCREEN_SIZE, size=[120, 27])
+        self.operate_train_buttons = \
+            self.create_buttons(self.operate_surface, operate_train_button_texts, operate_train_button_call_functions,
+                                ['center', (self.operate_surface.get_height() +
+                                            (self.info_display.display_size[1] +
+                                            self.info_display.display_pos[1]) * 4) / 5],
+                                26 * SCREEN_SIZE, size=[120, 27])
 
         # 按钮控件注册
         self.ct_manager.register(self.pmc_buttons)
         self.ct_manager.register(self.operate_play_buttons)
         self.ct_manager.register(self.operate_train_buttons)
-
-        # 创建信息展示器
-        self.info_display = InformationDisplay(self.operate_surface,
-                                               display_size=[self.operate_surface.get_width() - 10, 200])
 
         # 棋盘每格的大小
         self.block_size = int(SCREEN_SIZE * 360 / (self.board_size - 1))
@@ -255,9 +258,11 @@ class GameEngine:
             for button in self.operate_play_buttons:
                 button.enable()
         elif self.surface_state == 'train':
-            self.info_display.show()
+            self.info_display.refresh()
             for button in self.operate_train_buttons:
                 button.enable()
+        if self.board_size == 13 or self.board_size == 19:
+            self.operate_play_buttons[6].disable()
         return None
 
     def draw_pieces(self) -> None:
@@ -306,7 +311,7 @@ class GameEngine:
         return None
 
     def play_step(self, action: int) -> None:
-        """输入动作，更新游戏状态，并在有些界面上绘制相应的动画"""
+        """输入动作，更新游戏状态，并在界面上绘制相应的动画"""
         self.game_state.step(action)
         # 重绘棋盘、棋子、落子标记
         if action != self.board_size * self.board_size and action is not None:
@@ -322,8 +327,12 @@ class GameEngine:
         return None
 
     def take_action(self) -> None:
-        """当self.black_player.action或self.white_player.action不为None时候，执行相应动作"""
-
+        """
+        1. 控制self.black_player和self.white_player产生下一步的action
+        2. 当self.black_player.action或self.white_player.action不为None时候，执行相应动作
+        3. 当self.black_player.speed或self.white_player.speed不为None，绘制当前落子进度动画
+        """
+        # 计算下一步action
         if self.play_state and self.black_player.allow and self.black_player.action is None and \
                 self.game_state.turn() == go_engine.BLACK and not isinstance(self.black_player, HumanPlayer):
             self.black_player.play(self)
@@ -333,6 +342,7 @@ class GameEngine:
             self.white_player.play(self)
             self.white_player.allow = False
 
+        # 执行action
         if self.play_state and self.game_state.turn() == go_engine.BLACK and self.black_player.action is not None:
             self.play_step(self.black_player.action)
             self.black_player.action = None
@@ -342,6 +352,7 @@ class GameEngine:
             self.white_player.action = None
             self.black_player.allow = True
 
+        # 落子进度动画绘制
         if isinstance(self.black_player, MCTSPlayer) or isinstance(self.black_player, AlphaGoPlayer):
             if self.black_player.speed is not None:
                 self.draw_speed(self.black_player.speed[0], self.black_player.speed[1])
@@ -693,12 +704,19 @@ class GameEngine:
         self.surface_state = 'train'
         self.play_state = False
 
+        self.pmc_buttons[0].set_text('训练状态')
         self.pmc_buttons[0].disable()
+        self.pmc_buttons[1].set_text('训练状态')
         self.pmc_buttons[1].disable()
         for button in self.operate_play_buttons:
             button.disable()
 
+        self.draw_taiji()
         self.draw_operate()
+        if len(self.info_display.information_container) == 0:
+            self.info_display.draw('{}  你成功领养了一只幼生阿尔法狗！'.format(datetime.now().strftime(r'%m-%d %H:%M:%S')))
+        else:
+            self.info_display.refresh()
 
     @staticmethod
     def fct_for_exit():
@@ -712,9 +730,12 @@ class GameEngine:
     def fct_for_back(self):
         self.surface_state = 'play'
         self.play_state = False
+        self.operate_play_buttons[0].set_text('开始游戏')
         for button in self.operate_train_buttons:
             button.disable()
+        self.pmc_buttons[0].set_text(self.black_player.name)
         self.pmc_buttons[0].enable()
+        self.pmc_buttons[1].set_text(self.white_player.name)
         self.pmc_buttons[1].enable()
 
         self.draw_operate()
