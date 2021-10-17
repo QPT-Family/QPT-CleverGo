@@ -786,7 +786,8 @@ class GameEngine:
 
         self.draw_board()
         self.draw_pieces()
-        self.draw_mark(self.game_state.action_history[-1])
+        if len(self.game_state.action_history) > 0:
+            self.draw_mark(self.game_state.action_history[-1])
 
         self.operate_play_buttons[0].set_text('开始游戏')
         for button in self.operate_train_buttons:
