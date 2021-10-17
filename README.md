@@ -26,12 +26,16 @@ Python版本: `3.7`
 
 ## 功能说明
 - 程序启动入口：`play_game.py`
+![启动界面](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E5%90%AF%E5%8A%A8%E7%95%8C%E9%9D%A2.png)
 
 - 点击训练幼生阿尔法狗：
+![训练初始界面](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E8%AE%AD%E7%BB%83%E5%88%9D%E5%A7%8B%E7%95%8C%E9%9D%A2.png)
 
 - 点击开始训练：
+![训练过程](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E8%AE%AD%E7%BB%83%E8%BF%87%E7%A8%8B.png)
 
 - 对弈：
+![对弈](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E5%AF%B9%E5%BC%88.png)
 
 
 ## 其它说明
