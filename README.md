@@ -36,7 +36,6 @@ Python版本: `3.7`
 
 ## 其它说明
 目前正在编写项目技术原理文档，技术原理文档将从以下8个方面详细介绍项目核心技术原理：
-技术原理文档主要详解以下8个方面核心知识、技术、方法原理：
 
 1. 围棋基本知识
 2. 围棋模拟器(GymGo)核心方法原理
@@ -48,3 +47,5 @@ Python版本: `3.7`
 8. PigeonGo未来规划
 
 具体规划请参见：[鸽子围棋(PigeonGo)技术原理文档](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/docs/%E9%B8%BD%E5%AD%90%E5%9B%B4%E6%A3%8B(PigonGo)%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86%E6%96%87%E6%A1%A3.md)
+
+Star破1K开始发布技术原理文档！
