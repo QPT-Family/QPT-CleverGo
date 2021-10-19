@@ -172,7 +172,7 @@ class MCTS:
         """
         for i in range(self.n_playout):
             if not player.valid:
-                return -1
+                return None
             if player is not None:
                 player.speed = (i + 1, self.n_playout)
             simulate_game_state = game.game_state_simulator(player.is_selfplay)
@@ -193,7 +193,7 @@ class MCTS:
         """
         for i in range(self.n_playout):
             if not player.valid:
-                return -1
+                return None
             if player is not None:
                 player.speed = (i + 1, self.n_playout)
             game_state = game.game_state_simulator()

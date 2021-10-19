@@ -1,13 +1,15 @@
 # 鸽子围棋(PigeonGo)
 ![GitHub Repo stars](https://img.shields.io/github/stars/QPT-Family/QPT-PigeonGo)
 ![GitHub forks](https://img.shields.io/github/forks/QPT-Family/QPT-PigeonGo)
-![GitHub](https://img.shields.io/github/license/...)
+![GitHub](https://img.shields.io/github/license/QPT-Family/QPT-PigeonGo)
 [![QQGroup](https://img.shields.io/badge/QQ群-935098082-9cf?logo=tencent-qq&logoColor=000&logoWidth=15)](https://jq.qq.com/?_wv=1027&k=qFlk0VWG)
 
 
 [GitHub主页](https://github.com/QPT-Family/QPT-PigeonGo)
 
 鸽子围棋(PigeonGo)是基于Python+Pygame+PaddlePaddle打造的一款点击按钮就能可视化地训练围棋人工智能的程序。
+
+鸽子围棋通过模块化设计，搭建了一整套简单易用的围棋AI学习、开发、训练及效果可视化验证框架。
 
 期望大家能够*Star*支持！
 

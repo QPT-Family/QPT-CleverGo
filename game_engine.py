@@ -745,6 +745,10 @@ class GameEngine:
         # 点击训练幼生阿尔法狗按钮，进入训练界面
         self.surface_state = 'train'
         self.play_state = False
+        self.black_player.valid = False
+        self.white_player.valid = False
+        self.black_player.allow = False
+        self.white_player.allow = False
 
         # 初始化train_game_state
         self.train_game_state = GoEngine(board_size=self.board_size, komi=self.komi, record_step=self.record_step,
@@ -783,6 +787,10 @@ class GameEngine:
         self.surface_state = 'play'
         self.play_state = False
         self.train_state = False
+        self.black_player.valid = True
+        self.white_player.valid = True
+        self.black_player.allow = True
+        self.white_player.allow = True
 
         self.draw_board()
         self.draw_pieces()
