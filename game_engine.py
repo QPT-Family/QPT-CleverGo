@@ -100,6 +100,7 @@ class GameEngine:
         self.play_state = False
         # 游戏界面状态: 'play' or 'train'
         self.surface_state = 'play'
+        # 游戏训练状态
         self.train_state = False
 
         self.music_control_name = ['随机播放', '顺序播放', '单曲循环', '音乐关']
@@ -151,7 +152,7 @@ class GameEngine:
                                                outer_edge_color=[255, 255, 214], size=[160, 27], font_size=16,
                                                inner_edge_color=[247, 207, 181], text_color=[253, 253, 19])
         operate_play_button_texts = ['开始游戏', '弃一手', '悔棋', '重新开始', ('十三' if self.board_size == 9 else '九') + '路棋',
-                                     ('十三' if self.board_size == 19 else '十九') + '路棋', '训练幼生Alpha狗', '退出游戏']
+                                     ('十三' if self.board_size == 19 else '十九') + '路棋', '训练幼生阿尔法狗', '退出游戏']
         operate_play_button_call_functions = [self.fct_for_play_game, self.fct_for_pass, self.fct_for_regret,
                                               self.fct_for_restart, self.fct_for_new_game_1, self.fct_for_new_game_2,
                                               self.fct_for_train_alphago, self.fct_for_exit]
@@ -196,7 +197,7 @@ class GameEngine:
         # 刷新屏幕
         pygame.display.update()
 
-    def draw_board(self) -> None:
+    def draw_board(self):
         """绘制棋盘"""
         # 背景颜色覆盖
         self.board_surface.fill(BOARDCOLOR)
@@ -223,22 +224,18 @@ class GameEngine:
                      for i in position_loc for j in position_loc]
         for pos in positions:
             pygame.draw.circle(self.board_surface, BLACK, pos, 5, 0)
-        return None
 
-    def draw_taiji(self, mode='play') -> None:
+    def draw_taiji(self):
         """绘制表示下一手落子方的太极图"""
-        if mode == 'play':
-            game_state = self.game_state
-        else:
-            game_state = self.train_game_state
+        game_state = self.game_state if self.surface_state == 'play' else self.train_game_state
 
         black_pos = (self.taiji_surface.get_width() - IMAGES['black'][0].get_width()) / 2, \
                     (self.taiji_surface.get_height() - IMAGES['black'][0].get_height()) / 2
         white_pos = black_pos[0] + 44, black_pos[1]
         # 背景颜色填充
         self.taiji_surface.fill(BGCOLOR)
-        if not self.play_state and self.surface_state != 'train' or \
-                self.surface_state == 'train' and not self.train_state:
+        if not self.play_state and self.surface_state == 'play' or \
+                not self.train_state and self.surface_state == 'train':
             # 游戏未进行状态
             self.taiji_surface.blit(IMAGES['black'][0], black_pos)
             self.taiji_surface.blit(IMAGES['white'][0], white_pos)
@@ -249,9 +246,8 @@ class GameEngine:
             elif game_state.turn() == go_engine.WHITE:
                 # 下一手为白方
                 self.taiji_surface.blit(IMAGES['white'][0], white_pos)
-        return None
 
-    def draw_pmc(self) -> None:
+    def draw_pmc(self):
         self.pmc_surface.fill(BGCOLOR)
         # 绘制4行说明文字
         texts = ['执黑玩家：', '执白玩家：', '对弈音乐：', '音乐控制：']
@@ -261,10 +257,8 @@ class GameEngine:
         # 按钮激活
         for button in self.pmc_buttons:
             button.enable()
-        return None
 
-    def draw_operate(self) -> None:
-        # surface_state为"play"
+    def draw_operate(self):
         self.operate_surface.fill(BGCOLOR)
         if self.surface_state == 'play':
             self.operate_surface.fill(BGCOLOR)
@@ -273,18 +267,16 @@ class GameEngine:
                 button.enable()
         elif self.surface_state == 'train':
             self.info_display.refresh()
+            # 激活按钮
             for button in self.operate_train_buttons:
                 button.enable()
-        if self.board_size == 13 or self.board_size == 19:
+        if self.board_size in [13, 19]:
+            # 在13或19路棋情况下，冻结掉训练幼生阿尔法狗按钮
             self.operate_play_buttons[6].disable()
-        return None
 
-    def draw_pieces(self, mode='play') -> None:
+    def draw_pieces(self) -> None:
         """绘制棋子方法"""
-        if mode == 'play':
-            game_state = self.game_state
-        else:
-            game_state = self.train_game_state
+        game_state = self.game_state if self.surface_state == 'play' else self.train_game_state
 
         for i in range(self.board_size):
             for j in range(self.board_size):
@@ -306,42 +298,36 @@ class GameEngine:
                         self.board_surface.blit(IMAGES['white'][2], pos)
                     else:
                         self.board_surface.blit(IMAGES['white'][3], pos)
-        return None
 
-    def draw_mark(self, action, mode='play') -> None:
+    def draw_mark(self, action):
         """根据最近落子的棋盘坐标，绘制标记"""
-        if action == self.board_size ** 2:
-            return None
+        # 仅在action不为pass时生效
+        if action != self.board_size ** 2:
+            game_state = self.game_state if self.surface_state == 'play' else self.train_game_state
 
-        if mode == 'play':
-            game_state = self.game_state
-        else:
-            game_state = self.train_game_state
-
-        row = action // self.board_size
-        col = action % self.board_size
-        if game_state.turn() == go_engine.WHITE:
-            if self.board_size == 9:
-                pos = (SCREEN_SIZE * 19 + col * self.block_size, SCREEN_SIZE * 22 + row * self.block_size)
-            elif self.board_size == 13:
-                pos = (SCREEN_SIZE * 20 + col * self.block_size, SCREEN_SIZE * 21 + row * self.block_size)
+            row = action // self.board_size
+            col = action % self.board_size
+            if game_state.turn() == go_engine.WHITE:
+                if self.board_size == 9:
+                    pos = (SCREEN_SIZE * 19 + col * self.block_size, SCREEN_SIZE * 22 + row * self.block_size)
+                elif self.board_size == 13:
+                    pos = (SCREEN_SIZE * 20 + col * self.block_size, SCREEN_SIZE * 21 + row * self.block_size)
+                else:
+                    pos = (SCREEN_SIZE * 21 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
             else:
-                pos = (SCREEN_SIZE * 21 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
-        else:
-            if self.board_size == 9:
-                pos = (SCREEN_SIZE * 19 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
-            elif self.board_size == 13:
-                pos = (SCREEN_SIZE * 20 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
-            else:
-                pos = (SCREEN_SIZE * 21 + col * self.block_size, SCREEN_SIZE * 19 + row * self.block_size)
-        pygame.draw.circle(self.board_surface, MARKCOLOR, pos, self.piece_size[0] / 2 + 2 * SCREEN_SIZE, 2)
-        return None
+                if self.board_size == 9:
+                    pos = (SCREEN_SIZE * 19 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
+                elif self.board_size == 13:
+                    pos = (SCREEN_SIZE * 20 + col * self.block_size, SCREEN_SIZE * 20 + row * self.block_size)
+                else:
+                    pos = (SCREEN_SIZE * 21 + col * self.block_size, SCREEN_SIZE * 19 + row * self.block_size)
+            pygame.draw.circle(self.board_surface, MARKCOLOR, pos, self.piece_size[0] / 2 + 2 * SCREEN_SIZE, 2)
 
-    def play_step(self, action: int) -> None:
-        """输入动作，更新游戏状态，并在界面上绘制相应的动画"""
+    def play_step(self, action):
+        """输入动作，更新game_state状态，并在界面上绘制相应的动画"""
         self.game_state.step(action)
         # 重绘棋盘、棋子、落子标记
-        if action != self.board_size * self.board_size and action is not None:
+        if action != self.board_size ** 2 and action is not None:
             self.draw_board()
             self.draw_pieces()
             self.draw_mark(action)
@@ -351,54 +337,49 @@ class GameEngine:
         if self.game_state.done:
             self.draw_over()
             self.play_state = False
-        return None
 
     def train_step(self, action):
+        """输入动作，更新train_game_state状态，并在界面上绘制相应的动画"""
         self.train_game_state.step(action)
-        if action != self.board_size ** 2:
+        if action != self.board_size ** 2 and action is not None:
             self.draw_board()
-            self.draw_pieces(mode='train')
-            self.draw_mark(action, mode='train')
-        self.draw_taiji(mode='train')
+            self.draw_pieces()
+            self.draw_mark(action)
+        self.draw_taiji()
 
-    def take_action(self) -> None:
+    def take_action(self):
         """
         1. 控制self.black_player和self.white_player产生下一步的action
         2. 当self.black_player.action或self.white_player.action不为None时候，执行相应动作
         3. 当self.black_player.speed或self.white_player.speed不为None，绘制当前落子进度动画
         """
         # 计算下一步action
-        if self.play_state and self.black_player.allow and self.black_player.action is None and \
-                self.game_state.turn() == go_engine.BLACK and not isinstance(self.black_player, HumanPlayer):
+        if self.play_state and self.game_state.turn() == go_engine.BLACK and \
+                not isinstance(self.black_player, HumanPlayer):
             self.black_player.play(self)
-            self.black_player.allow = False
-        if self.play_state and self.white_player.allow and self.white_player.action is None and \
-                self.game_state.turn() == go_engine.WHITE and not isinstance(self.white_player, HumanPlayer):
+        elif self.play_state and self.game_state.turn() == go_engine.WHITE and \
+                not isinstance(self.white_player, HumanPlayer):
             self.white_player.play(self)
-            self.white_player.allow = False
 
         # 执行action
         if self.play_state and self.game_state.turn() == go_engine.BLACK and self.black_player.action is not None:
             self.play_step(self.black_player.action)
             self.black_player.action = None
             self.white_player.allow = True
-        if self.play_state and self.game_state.turn() == go_engine.WHITE and self.white_player.action is not None:
+        elif self.play_state and self.game_state.turn() == go_engine.WHITE and self.white_player.action is not None:
             self.play_step(self.white_player.action)
             self.white_player.action = None
             self.black_player.allow = True
 
         # 落子进度动画绘制
-        if isinstance(self.black_player, MCTSPlayer) or isinstance(self.black_player, AlphaGoPlayer):
-            if self.black_player.speed is not None:
-                self.draw_speed(self.black_player.speed[0], self.black_player.speed[1])
-                self.black_player.speed = None
-        if isinstance(self.white_player, MCTSPlayer) or isinstance(self.white_player, AlphaGoPlayer):
-            if self.white_player.speed is not None:
-                self.draw_speed(self.white_player.speed[0], self.white_player.speed[1])
-                self.white_player.speed = None
-        return None
+        if self.black_player.speed is not None:
+            self.draw_speed(self.black_player.speed[0], self.black_player.speed[1])
+            self.black_player.speed = None
+        elif self.white_player.speed is not None:
+            self.draw_speed(self.white_player.speed[0], self.white_player.speed[1])
+            self.white_player.speed = None
 
-    def event_control(self, event: pygame.event.Event) -> None:
+    def event_control(self, event: pygame.event.Event):
         """
         游戏控制：根据pygame.event触发相应游戏状态
 
@@ -409,23 +390,24 @@ class GameEngine:
         :return:
         """
         # HumanPlayer落子
-        next_player, is_human = self.next_player_and_type()
-        if self.play_state and is_human:
+        next_player = self.next_player()
+        if self.play_state and isinstance(next_player, HumanPlayer):
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and \
                     pos_in_surface(event.pos, self.board_surface):
                 action = self.mouse_pos_to_action(event.pos)
                 if self.game_state.action_valid(action):
-                    if next_player == go_engine.BLACK:
+                    if self.game_state.turn() == go_engine.BLACK:
                         self.black_player.action = action
                     else:
                         self.white_player.action = action
-        # ct_manager更新
+        # controls更新
         self.ct_manager.update(event)
 
     def game_state_simulator(self, train=False) -> GoEngine:
         """返回一个用作模拟的game_state"""
         game_state = GoEngine(board_size=self.board_size, komi=self.komi, record_step=self.record_step,
                               state_format=self.state_format, record_last=self.record_last)
+
         if not train:
             game_state.current_state = np.copy(self.game_state.current_state)
             game_state.board_state = np.copy(self.game_state.board_state)
@@ -455,10 +437,8 @@ class GameEngine:
             elif col > self.board_size - 1:
                 col = self.board_size - 1
             return row * self.board_size + col
-        else:
-            return None
 
-    def draw_over(self) -> None:
+    def draw_over(self):
         """绘制游戏结束画面"""
         # 获得黑白双方的区域
         black_areas, white_areas = self.game_state.areas()
@@ -481,16 +461,14 @@ class GameEngine:
         self.board_surface.blit(over_screen,
                                 ((self.board_surface.get_width() - over_screen.get_width()) / 2,
                                  (self.board_surface.get_height() - over_screen.get_height()) / 2))
-        return None
 
-    def draw_speed(self, count, total) -> None:
+    def draw_speed(self, count, total):
         """一个简单绘制落子进度的方法"""
         self.speed_surface.fill(BGCOLOR)
         sub_speed_area = self.speed_surface.subsurface((0, SCREENHEIGHT - round(count / total * SCREENHEIGHT),
                                                         self.speed_surface.get_width(),
                                                         round(count / total * SCREENHEIGHT)))
         sub_speed_area.fill((15, 255, 255))
-        return None
 
     @staticmethod
     def create_buttons(surface: pygame.Surface,
@@ -557,25 +535,20 @@ class GameEngine:
         elif pygame.mixer.get_busy() and self.music_control_id == 3:  # 音乐关
             MUSICS[self.music_id][1].stop()
 
-    def next_player_and_type(self):
-        """返回下一步落子方及其是否为人类玩家"""
+    def next_player(self):
+        """返回下一步落子方玩家对象"""
         if self.game_state.turn() == go_engine.BLACK:
-            if isinstance(self.black_player, HumanPlayer):
-                return go_engine.BLACK, True
-            else:
-                return go_engine.BLACK, False
+            return self.black_player
         else:
-            if isinstance(self.white_player, HumanPlayer):
-                return go_engine.WHITE, True
-            else:
-                return go_engine.WHITE, False
+            return self.white_player
 
     def fct_for_black_player(self):
         # 切换玩家，会使游戏暂停
         self.play_state = False
+        # 被切换掉的玩家对象失效
+        self.black_player.valid = False
         self.operate_play_buttons[0].set_text('开始游戏')
 
-        self.black_player.valid = False
         if self.game_state.turn() == go_engine.BLACK:
             if isinstance(self.black_player, MCTSPlayer) or isinstance(self.black_player, AlphaGoPlayer):
                 self.draw_speed(0, 1)
@@ -587,15 +560,14 @@ class GameEngine:
 
         # 将当前Player设置为响应Player
         self.black_player = self.create_player(self.black_player_id)
-
         self.pmc_buttons[0].set_text(self.black_player.name)
 
     def fct_for_white_player(self):
         # 切换玩家，会使游戏暂停
         self.play_state = False
+        self.white_player.valid = False
         self.operate_play_buttons[0].set_text('开始游戏')
 
-        self.white_player.valid = False
         if self.game_state.turn() == go_engine.WHITE:
             if isinstance(self.white_player, MCTSPlayer) or isinstance(self.white_player, AlphaGoPlayer):
                 self.draw_speed(0, 1)
@@ -607,11 +579,10 @@ class GameEngine:
 
         # 将当前Player设置为响应Player
         self.white_player = self.create_player(self.white_player_id)
-
         self.pmc_buttons[1].set_text(self.white_player.name)
 
     @staticmethod
-    def create_player(player_id: int):
+    def create_player(player_id: int) -> Player:
         """根据player_id创建player"""
         if player_id == 0:
             player = HumanPlayer()
@@ -657,22 +628,25 @@ class GameEngine:
     def fct_for_play_game(self):
         # 当开始游戏按钮被点击
         if self.play_state:
-            # 游戏在进行状态时点击该按钮
+            # 游戏在进行状态时点击该按钮，游戏进入暂停状态
             self.operate_play_buttons[0].set_text('开始游戏')
             self.play_state = False
+            # 切换至暂停状态，退出落子action计算循环
+            self.next_player().valid = False
         else:
             # 游戏在未进行状态时点击该按钮
             self.operate_play_buttons[0].set_text('暂停游戏')
             self.play_state = True
+            self.next_player().valid = True
         self.draw_taiji()
 
     def fct_for_pass(self):
         # pass一手
         # 仅在游戏开始且当前玩家为HumanPlayer时有效
         if self.play_state:
-            next_player, is_human = self.next_player_and_type()
-            if is_human:
-                if next_player == go_engine.BLACK:
+            next_player = self.next_player()
+            if isinstance(next_player, HumanPlayer):
+                if self.game_state.turn() == go_engine.BLACK:
                     self.black_player.action = self.board_size ** 2
                 else:
                     self.white_player.action = self.board_size ** 2
@@ -680,8 +654,8 @@ class GameEngine:
     def fct_for_regret(self):
         # 悔棋
         if self.play_state:
-            _, is_human = self.next_player_and_type()
-            if is_human:
+            next_player = self.next_player()
+            if isinstance(next_player, HumanPlayer):
                 if len(self.game_state.board_state_history) > 2:
                     self.game_state.current_state = self.game_state.board_state_history[-3]
                     self.game_state.board_state_history = self.game_state.board_state_history[:-2]
@@ -700,24 +674,25 @@ class GameEngine:
         # 当重新开始按钮被点击
         self.play_state = True
         self.operate_play_buttons[0].set_text('暂停游戏')
-        self.game_state.reset()
-        self.draw_board()
-        self.draw_taiji()
 
         self.black_player.valid = False
         self.white_player.valid = False
         self.black_player = self.create_player(self.black_player_id)
         self.white_player = self.create_player(self.white_player_id)
 
+        self.game_state.reset()
+        self.draw_board()
+        self.draw_taiji()
+
     def fct_for_new_game_1(self):
+        self.black_player.valid = False
+        self.white_player.valid = False
+
         # 保存音乐信息
         music_id = self.music_id
         music_control_id = self.music_control_id
         # 初始化
-        if self.board_size == 9:
-            new_game_size = 13
-        else:
-            new_game_size = 9
+        new_game_size = 13 if self.board_size == 9 else 9
         self.__init__(new_game_size, komi=self.komi, record_step=self.record_step, state_format=self.state_format,
                       record_last=self.record_last)
         self.music_id = music_id
@@ -726,14 +701,14 @@ class GameEngine:
         self.pmc_buttons[3].set_text(self.music_control_name[self.music_control_id])
 
     def fct_for_new_game_2(self):
+        self.black_player.valid = False
+        self.white_player.valid = False
+
         # 保存音乐信息
         music_id = self.music_id
         music_control_id = self.music_control_id
         # 初始化
-        if self.board_size == 19:
-            new_game_size = 13
-        else:
-            new_game_size = 19
+        new_game_size = 13 if self.board_size == 19 else 19
         self.__init__(new_game_size, komi=self.komi, record_step=self.record_step, state_format=self.state_format,
                       record_last=self.record_last)
         self.music_id = music_id
@@ -747,8 +722,6 @@ class GameEngine:
         self.play_state = False
         self.black_player.valid = False
         self.white_player.valid = False
-        self.black_player.allow = False
-        self.white_player.allow = False
 
         # 初始化train_game_state
         self.train_game_state = GoEngine(board_size=self.board_size, komi=self.komi, record_step=self.record_step,
@@ -764,10 +737,7 @@ class GameEngine:
 
         self.draw_taiji()
         self.draw_operate()
-        if len(self.info_display.information_container) == 0:
-            self.info_display.draw('{}  你成功领养了一只幼生阿尔法狗！'.format(datetime.now().strftime(r'%m-%d %H:%M:%S')))
-        else:
-            self.info_display.refresh()
+        self.info_display.refresh()
 
     @staticmethod
     def fct_for_exit():
@@ -778,19 +748,14 @@ class GameEngine:
         # 当开始训练按钮被点击
         if not self.train_state:
             self.train_state = True
-            # 开启自对弈线程
-            self.trainer.self_play(self)
             # 开启训练线程
-            self.trainer.network_update(self)
+            self.trainer.start(self)
 
     def fct_for_back(self):
         self.surface_state = 'play'
-        self.play_state = False
         self.train_state = False
         self.black_player.valid = True
         self.white_player.valid = True
-        self.black_player.allow = True
-        self.white_player.allow = True
 
         self.draw_board()
         self.draw_pieces()

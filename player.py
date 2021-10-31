@@ -15,14 +15,22 @@ import os
 
 class Player:
     def __init__(self):
+        # 是否允许启动线程计算下一步action标记
         self.allow = True
+        # 下一步action
         self.action = None
+        # Player名字
         self.name = 'Player'
+        # 该Player是否有效，用于提前退出计算循环
         self.valid = True
+        # 表明落子计算进度的量(仅在Player为MCTS或AlphaGo时生效)
+        self.speed = None
 
     def play(self, game):
-        # daemon=True可以使得主线程结束时，所有子线程全部退出，使得点击退出游戏按钮后，不用等待子线程结束
-        Thread(target=self.step, args=(game, ), daemon=True).start()
+        if self.allow and self.action is None:
+            self.allow = False
+            # daemon=True可以使得主线程结束时，所有子线程全部退出，使得点击退出游戏按钮后，不用等待子线程结束
+            Thread(target=self.step, args=(game, ), daemon=True).start()
 
     def step(self, game):
         """
@@ -61,7 +69,6 @@ class MCTSPlayer(Player):
     def __init__(self, c_puct=5, n_playout=20):
         super().__init__()
         self.name = '蒙特卡洛{}'.format(n_playout)
-        self.speed = None
 
         def rollout_policy_fn(game_state_simulator):
             # 选择随机动作
@@ -79,7 +86,8 @@ class MCTSPlayer(Player):
 
     def step(self, game):
         self.action = self.get_action(game)
-        self.speed = (0, 1)  # 获得动作后将速度区域清空
+        # 获得动作后将速度区域清空
+        self.speed = (0, 1)
 
     def reset_player(self):
         self.mcts.update_with_move(-1)
@@ -99,7 +107,6 @@ class AlphaGoPlayer(Player):
             self.name = '幼生阿尔法狗'
         else:
             self.name = '预期之外的错误名称'
-        self.speed = None
         self.policy_value_net = PolicyValueNet()
         self.policy_value_net.eval()
 

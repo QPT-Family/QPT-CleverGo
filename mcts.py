@@ -172,6 +172,8 @@ class MCTS:
         """
         for i in range(self.n_playout):
             if not player.valid:
+                # 由于player.valid为False时退出循环，会使得player.allow为True
+                player.allow = True
                 return None
             if player is not None:
                 player.speed = (i + 1, self.n_playout)
@@ -193,6 +195,8 @@ class MCTS:
         """
         for i in range(self.n_playout):
             if not player.valid:
+                # 由于player.valid为False时退出循环，会使得player.allow为True
+                player.allow = True
                 return None
             if player is not None:
                 player.speed = (i + 1, self.n_playout)

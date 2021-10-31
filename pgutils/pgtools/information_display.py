@@ -60,22 +60,9 @@ class InformationDisplay:
         self.outer_rect_color = outer_rect_color
         self.inner_rect_color = inner_rect_color
 
-    def draw(self, text: str) -> None:
+    def draw(self, text: str):
         self.information_container.append(text)
-
-        # 背景颜色填充
-        self.display_surface.fill(self.bg_color)
-        # 绘制外框
-        pygame.draw.rect(self.display_surface, self.outer_rect_color, self.outer_rect, width=1)
-        # 绘制内框
-        pygame.draw.rect(self.display_surface, self.inner_rect_color, self.inner_rect, width=1)
-
-        # 绘制文本
-        next_pos = [3, 2]
-        for line in self.information_container:
-            line = self.font.render(line, True, self.font_color)
-            next_pos = draw_text(self.display_surface, line, next_pos)
-        return None
+        self.refresh()
 
     def refresh(self):
         self.display_surface.fill(self.bg_color)
