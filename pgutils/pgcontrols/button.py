@@ -7,8 +7,8 @@
 import pygame
 import os
 import copy
-from pgutils.pgtools.text import draw_text
-from pgutils.pgtools.position import pos_in_surface
+from pgutils.text import draw_text
+from pgutils.position import pos_in_surface
 from pgutils.pgcontrols.ctbase import CtBase
 from typing import Tuple, List, Union, Callable, Optional
 

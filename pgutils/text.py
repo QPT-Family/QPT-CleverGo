@@ -5,7 +5,7 @@
 # @Software: PyCharm
 
 import pygame
-from typing import List, Tuple, Union, Iterable
+from typing import List, Tuple, Union
 import os
 
 current_path = os.path.dirname(__file__)
@@ -16,7 +16,7 @@ def draw_text(surface: pygame.Surface,
               pos: Union[List[str or float or int], Tuple[str or float or int]],
               font_size: int = 48,
               font_color: Union[Tuple[int], List[int]] = (255, 255, 255),
-              font_path: str = current_path + "/../../assets/fonts/msyh.ttc",
+              font_path: str = current_path + "/../assets/fonts/msyh.ttc",
               next_bias: Union[Tuple[int or float], List[int or float]] = (0, 0)) -> Tuple:
     """
     在指定pygame.surface上绘制文字的方法

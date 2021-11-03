@@ -8,12 +8,13 @@ import os
 import pygame
 from collections import deque
 from typing import List, Tuple, Optional
-from pgutils.pgtools.text import draw_text
+from pgutils.text import draw_text
+from pgutils.pgtools.toolbase import ToolBase
 
 current_path = os.path.dirname(__file__)
 
 
-class InformationDisplay:
+class InformationDisplay(ToolBase):
     def __init__(self, surface: pygame.Surface,
                  display_pos: Optional[List[str or float or int]] = None,
                  display_size: Optional[List[int or float]] = None,
@@ -36,6 +37,7 @@ class InformationDisplay:
         :param font_color: 字体颜色
         :param font_path: 字体文件路径
         """
+        super(InformationDisplay, self).__init__()
         if display_pos is None:
             display_pos = [20, 20]
         if display_size is None:
@@ -60,11 +62,12 @@ class InformationDisplay:
         self.outer_rect_color = outer_rect_color
         self.inner_rect_color = inner_rect_color
 
-    def draw(self, text: str):
+    def push_text(self, text: str, update=False):
         self.information_container.append(text)
-        self.refresh()
+        if update:
+            self.enable()
 
-    def refresh(self):
+    def update(self):
         self.display_surface.fill(self.bg_color)
         # 绘制外框
         pygame.draw.rect(self.display_surface, self.outer_rect_color, self.outer_rect, width=1)
@@ -89,7 +92,8 @@ if __name__ == "__main__":
     info_display = InformationDisplay(screen)
     for i in range(10):
         pygame.event.pump()
-        info_display.draw("测试消息：{}".format(i))
+        info_display.push_text("测试消息：{}".format(i))
+        info_display.update()
         pygame.display.update()
         time.sleep(1)
     while True:

@@ -85,7 +85,12 @@ class MCTSPlayer(Player):
         self.mcts = MCTS(policy_value_fn, c_puct, n_playout)
 
     def step(self, game):
-        self.action = self.get_action(game)
+        action = self.get_action(game)
+        if action == -1:
+            action = None
+            self.allow = True
+        self.action = action
+
         # 获得动作后将速度区域清空
         self.speed = (0, 1)
 
@@ -121,7 +126,11 @@ class AlphaGoPlayer(Player):
         self.mcts.update_with_move(-1)
 
     def step(self, game):
-        self.action = self.get_action(game)
+        action = self.get_action(game)
+        if action == -1:
+            action = None
+            self.allow = True
+        self.action = action
         self.speed = (0, 1)
 
     def get_action(self, game, temp=1e-3, return_probs=False):

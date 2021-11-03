@@ -1,4 +1,4 @@
-# 鸽子围棋(PigeonGo)
+# 机巧围棋(CleverGo)
 ![GitHub Repo stars](https://img.shields.io/github/stars/QPT-Family/QPT-PigeonGo)
 ![GitHub forks](https://img.shields.io/github/forks/QPT-Family/QPT-PigeonGo)
 ![GitHub](https://img.shields.io/github/license/QPT-Family/QPT-PigeonGo)
@@ -7,9 +7,9 @@
 
 [GitHub主页](https://github.com/QPT-Family/QPT-PigeonGo)
 
-鸽子围棋(PigeonGo)是基于Python+Pygame+PaddlePaddle打造的一款点击按钮就能可视化地训练围棋人工智能的程序。
+机巧围棋(CleverGo)是基于Python+Pygame+PaddlePaddle打造的一款点击按钮就能可视化地训练围棋人工智能的程序。
 
-鸽子围棋通过模块化设计，搭建了一整套简单易用的围棋AI学习、开发、训练及效果可视化验证框架。
+机巧围棋通过模块化设计，搭建了一整套简单易用的围棋AI学习、开发、训练及效果可视化验证框架。
 
 期望大家能够*Star*支持！
 
@@ -49,9 +49,9 @@ Python版本: `3.7`
 4. 深度学习框架(PaddlePaddle)核心方法
 5. 深度强化学习基本原理方法
 6. AlphaGo基本原理
-7. PigeonGo项目程序设计方法原理
-8. PigeonGo未来规划
+7. CleverGo项目程序设计方法原理
+8. CleverGo未来规划
 
-具体规划请参见：[鸽子围棋(PigeonGo)技术原理文档](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/docs/%E9%B8%BD%E5%AD%90%E5%9B%B4%E6%A3%8B(PigonGo)%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86%E6%96%87%E6%A1%A3.md)
+具体规划请参见：[机巧围棋(CleverGo)技术原理文档](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/docs/%E9%B8%BD%E5%AD%90%E5%9B%B4%E6%A3%8B(PigonGo)%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86%E6%96%87%E6%A1%A3.md)
 
 Star破1K开始发布技术原理文档！

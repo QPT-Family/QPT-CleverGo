@@ -52,26 +52,20 @@ class Trainer:
             state_dict = paddle.load(self.train_model_path)
             self.player.policy_value_net.set_state_dict(state_dict)
             print('加载模型权重成功！')
-            lock.acquire()
-            if game.surface_state == 'train':
-                game.info_display.draw('{}  你成功唤醒了你的幼生阿尔法狗！'.format(datetime.now().strftime(r'%m-%d %H:%M:%S')))
-            lock.release()
+            game.info_display.push_text('{}  你成功唤醒了你的幼生阿尔法狗！'.format(
+                datetime.now().strftime(r'%m-%d %H:%M:%S')), update=True)
         else:
             print('未找到模型参数！')
-            lock.acquire()
-            if game.surface_state == 'train':
-                game.info_display.draw('{}  你成功领养了一只幼生阿尔法狗！'.format(datetime.now().strftime(r'%m-%d %H:%M:%S')))
-            lock.release()
+            game.info_display.push_text('{}  你成功领养了一只幼生阿尔法狗！'.format(
+                datetime.now().strftime(r'%m-%d %H:%M:%S')), update=True)
 
         while True:
             if game.surface_state == 'play':
                 break
 
             # 自对弈一局
-            lock.acquire()
-            if game.surface_state == 'train':
-                game.info_display.draw('{}  你的阿尔法狗开始了自对弈！'.format(datetime.now().strftime(r'%m-%d %H:%M:%S')))
-            lock.release()
+            game.info_display.push_text('{}  你的阿尔法狗开始了自对弈！'.format(
+                datetime.now().strftime(r'%m-%d %H:%M:%S')), update=True)
             play_datas = self.self_play_one_game(game)
             if play_datas is not None:
                 play_datas = self.get_equi_data(play_datas)
@@ -80,11 +74,8 @@ class Trainer:
                 paddle.save(self.player.policy_value_net.state_dict(), self.train_model_path)
                 self.model_update_step += 1
                 print('保存模型权重一次！')
-                lock.acquire()
-                if game.surface_state == 'train':
-                    game.info_display.draw('{}  阿尔法狗成长阶段{}！'.format(
-                        datetime.now().strftime(r'%m-%d %H:%M:%S'), self.model_update_step))
-                lock.release()
+                game.info_display.push_text('{}  阿尔法狗成长阶段{}！'.format(
+                    datetime.now().strftime(r'%m-%d %H:%M:%S'), self.model_update_step), update=True)
 
     def self_play_one_game(self, game):
         """自对弈依据游戏，并获取对弈数据"""
@@ -109,11 +100,8 @@ class Trainer:
             end, winner = game.train_game_state.game_ended(), game.train_game_state.winner()
             if end:
                 print('{}胜！'.format('黑' if winner == go_engine.BLACK else '白'))
-                lock.acquire()
-                if game.surface_state == 'train':
-                    game.info_display.draw('{}  {}胜！'.format(
-                        datetime.now().strftime(r'%m-%d %H:%M:%S'), '黑' if winner == go_engine.BLACK else '白'))
-                lock.release()
+                game.info_display.push_text('{}  {}胜！'.format(
+                    datetime.now().strftime(r'%m-%d %H:%M:%S'), '黑' if winner == go_engine.BLACK else '白'), update=True)
 
                 winners = np.zeros(len(current_players))
                 if winner != -1:

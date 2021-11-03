@@ -9,15 +9,14 @@ import sys
 import copy
 import go_engine
 from go_engine import GoEngine
-from pgutils.ctmanager import CtManager
+from pgutils.manager import Manager
 from pgutils.pgcontrols.button import Button
-from pgutils.pgtools.text import draw_text
+from pgutils.text import draw_text
 from pgutils.pgtools.information_display import InformationDisplay
-from pgutils.pgtools.position import pos_in_surface
+from pgutils.position import pos_in_surface
 from player import *
 import os
 from typing import List, Tuple, Callable, Union
-from datetime import datetime
 from trainer import Trainer
 
 SCREEN_SIZE = 1.8  # 控制模拟器界面放大或缩小的比例
@@ -34,7 +33,7 @@ pygame.init()
 # 创建游戏主屏幕
 SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
 # 设置游戏名称
-pygame.display.set_caption('鸽子围棋(PigeonGo)')
+pygame.display.set_caption('机巧围棋(CleverGo)')
 # 启动界面绘制启动信息
 loading_font = pygame.font.Font('assets/fonts/msyh.ttc', 72)
 loading_text_render = loading_font.render('正在加载...', True, WHITE)
@@ -94,8 +93,8 @@ class GameEngine:
         self.trainer = Trainer()
         self.train_game_state = None
 
-        # 初始化pygame控件管理器
-        self.ct_manager = CtManager()
+        # 初始化pygame控件及工具管理器
+        self.manager = Manager()
         # 游戏控制状态
         self.play_state = False
         # 游戏界面状态: 'play' or 'train'
@@ -138,8 +137,10 @@ class GameEngine:
                                                   SCREENHEIGHT * (1 - 1 / 3.5 - 1 / 5)))
 
         # 创建信息展示器
-        self.info_display = InformationDisplay(self.operate_surface, max_show=10, display_pos=[15, 15],
+        self.info_display = InformationDisplay(self.operate_surface, max_show=12, display_pos=[15, 15],
                                                display_size=[self.operate_surface.get_width() - 30, 230])
+        # 信息展示器注册
+        self.manager.tool_register(self.info_display)
 
         # 初始化按钮控件
         pmc_button_texts = [self.black_player.name, self.white_player.name,
@@ -170,9 +171,9 @@ class GameEngine:
                                 26 * SCREEN_SIZE, size=[120, 27])
 
         # 按钮控件注册
-        self.ct_manager.register(self.pmc_buttons)
-        self.ct_manager.register(self.operate_play_buttons)
-        self.ct_manager.register(self.operate_train_buttons)
+        self.manager.control_register(self.pmc_buttons)
+        self.manager.control_register(self.operate_play_buttons)
+        self.manager.control_register(self.operate_train_buttons)
 
         # 棋盘每格的大小
         self.block_size = int(SCREEN_SIZE * 360 / (self.board_size - 1))
@@ -266,7 +267,7 @@ class GameEngine:
             for button in self.operate_play_buttons:
                 button.enable()
         elif self.surface_state == 'train':
-            self.info_display.refresh()
+            self.info_display.enable()
             # 激活按钮
             for button in self.operate_train_buttons:
                 button.enable()
@@ -337,6 +338,8 @@ class GameEngine:
         if self.game_state.done:
             self.draw_over()
             self.play_state = False
+            self.operate_play_buttons[0].set_text('开始游戏')
+            self.draw_taiji()
 
     def train_step(self, action):
         """输入动作，更新train_game_state状态，并在界面上绘制相应的动画"""
@@ -352,6 +355,7 @@ class GameEngine:
         1. 控制self.black_player和self.white_player产生下一步的action
         2. 当self.black_player.action或self.white_player.action不为None时候，执行相应动作
         3. 当self.black_player.speed或self.white_player.speed不为None，绘制当前落子进度动画
+        4. 更新所有激活的tools
         """
         # 计算下一步action
         if self.play_state and self.game_state.turn() == go_engine.BLACK and \
@@ -379,6 +383,10 @@ class GameEngine:
             self.draw_speed(self.white_player.speed[0], self.white_player.speed[1])
             self.white_player.speed = None
 
+        # tools更新
+        if self.surface_state == 'train':
+            self.manager.tool_update()
+
     def event_control(self, event: pygame.event.Event):
         """
         游戏控制：根据pygame.event触发相应游戏状态
@@ -401,7 +409,7 @@ class GameEngine:
                     else:
                         self.white_player.action = action
         # controls更新
-        self.ct_manager.update(event)
+        self.manager.control_update(event)
 
     def game_state_simulator(self, train=False) -> GoEngine:
         """返回一个用作模拟的game_state"""
@@ -635,9 +643,14 @@ class GameEngine:
             self.next_player().valid = False
         else:
             # 游戏在未进行状态时点击该按钮
+            if self.game_state.done:
+                self.game_state.reset()
+                self.draw_board()
+                self.black_player.allow = True
+            else:
+                self.next_player().valid = True
             self.operate_play_buttons[0].set_text('暂停游戏')
             self.play_state = True
-            self.next_player().valid = True
         self.draw_taiji()
 
     def fct_for_pass(self):
@@ -737,7 +750,7 @@ class GameEngine:
 
         self.draw_taiji()
         self.draw_operate()
-        self.info_display.refresh()
+        self.info_display.enable()
 
     @staticmethod
     def fct_for_exit():
@@ -756,6 +769,7 @@ class GameEngine:
         self.train_state = False
         self.black_player.valid = True
         self.white_player.valid = True
+        self.info_display.disable()
 
         self.draw_board()
         self.draw_pieces()
