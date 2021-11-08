@@ -1,17 +1,17 @@
 # 机巧围棋(CleverGo)
-![GitHub Repo stars](https://img.shields.io/github/stars/QPT-Family/QPT-PigeonGo)
-![GitHub forks](https://img.shields.io/github/forks/QPT-Family/QPT-PigeonGo)
-![GitHub](https://img.shields.io/github/license/QPT-Family/QPT-PigeonGo)
+![GitHub Repo stars](https://img.shields.io/github/stars/QPT-Family/QPT-CleverGo)
+![GitHub forks](https://img.shields.io/github/forks/QPT-Family/QPT-CleverGo)
+![GitHub](https://img.shields.io/github/license/QPT-Family/QPT-CleverGo)
 [![QQGroup](https://img.shields.io/badge/QQ群-935098082-9cf?logo=tencent-qq&logoColor=000&logoWidth=15)](https://jq.qq.com/?_wv=1027&k=qFlk0VWG)
 
 
-[GitHub主页](https://github.com/QPT-Family/QPT-PigeonGo)
+[GitHub主页](https://github.com/QPT-Family/QPT-CleverGo)
 
 机巧围棋(CleverGo)是基于Python+Pygame+PaddlePaddle打造的一款点击按钮就能可视化地训练围棋人工智能的程序。
 
 机巧围棋通过模块化设计，搭建了一整套简单易用的围棋AI学习、开发、训练及效果可视化验证框架。
 
-期望大家能够*Star*支持！
+期望大家能够*Star*支持机巧围棋哟~！
 
 ## 版本说明
 > 当前版本为尝鲜版，可能会有未测试出的Bug。如发现问题，强烈建议加QQ群935098082与我们进行交流，我们仍在更新~
@@ -19,7 +19,7 @@
 ## 安装说明
 Python版本: `3.7`
 
-下载链接: `https://github.com/QPT-Family/QPT-PigeonGo/archive/refs/heads/main.zip`
+下载链接: `https://github.com/QPT-Family/QPT-CleverGo/archive/refs/heads/main.zip`
 
 依赖安装: `pip install -r requirements.txt`
 
@@ -28,16 +28,16 @@ Python版本: `3.7`
 
 ## 功能说明
 - 程序启动入口：`play_game.py`
-![启动界面](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E5%90%AF%E5%8A%A8%E7%95%8C%E9%9D%A2.png)
+![启动界面](https://github.com/QPT-Family/QPT-CleverGo/blob/main/pictures/%E5%90%AF%E5%8A%A8%E7%95%8C%E9%9D%A2.png)
 
 - 点击训练幼生阿尔法狗：
-![训练初始界面](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E8%AE%AD%E7%BB%83%E5%88%9D%E5%A7%8B%E7%95%8C%E9%9D%A2.png)
+![训练初始界面](https://github.com/QPT-Family/QPT-CleverGo/blob/main/pictures/%E8%AE%AD%E7%BB%83%E5%88%9D%E5%A7%8B%E7%95%8C%E9%9D%A2.png)
 
 - 点击开始训练：
-![训练过程](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E8%AE%AD%E7%BB%83%E8%BF%87%E7%A8%8B.png)
+![训练过程](https://github.com/QPT-Family/QPT-CleverGo/blob/main/pictures/%E8%AE%AD%E7%BB%83%E8%BF%87%E7%A8%8B.png)
 
 - 对弈：
-![对弈](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/pictures/%E5%AF%B9%E5%BC%88.png)
+![对弈](https://github.com/QPT-Family/QPT-CleverGo/blob/main/pictures/%E5%AF%B9%E5%BC%88.png)
 
 
 ## 其它说明
@@ -52,6 +52,4 @@ Python版本: `3.7`
 7. CleverGo项目程序设计方法原理
 8. CleverGo未来规划
 
-具体规划请参见：[机巧围棋(CleverGo)技术原理文档](https://github.com/QPT-Family/QPT-PigeonGo/blob/main/docs/%E9%B8%BD%E5%AD%90%E5%9B%B4%E6%A3%8B(PigonGo)%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86%E6%96%87%E6%A1%A3.md)
-
-Star破1K开始发布技术原理文档！
+具体规划请参见：[机巧围棋(CleverGo)技术原理文档](https://github.com/QPT-Family/QPT-CleverGo/blob/main/docs/%E9%B8%BD%E5%AD%90%E5%9B%B4%E6%A3%8B(PigonGo)%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86%E6%96%87%E6%A1%A3.md)

@@ -19,6 +19,7 @@ def evaluate_rollout(simulate_game_state, rollout_policy_fn, limit=1000):
     """
     使用rollout_policy_fn玩游戏直至游戏结束或达到限制数，如果当前玩家获胜，则返回+1，对手胜则返回-1，和棋则返回0
     如果模拟次数超过限制游戏还没结束，则同样返回0
+
     :param simulate_game_state: 模拟游戏状态
     :param rollout_policy_fn: 产生下一步各合法动作及其概率的函数
     :param limit: 限制模拟步数，超过这个限制还没结束，游戏视为和棋
@@ -53,9 +54,10 @@ class TreeNode:
 
     def select(self, c_puct):
         """
-        蒙特卡洛树搜索的第一步：选择。
+        蒙特卡洛树搜索的第一步：选择
         蒙特卡洛树搜索通过不断选择 最大上置信限Q+U 的子节点，直至一个树的叶结点
-        该函数为进行一步选择函数。
+        该函数为进行一步选择函数
+
         :param c_puct: 为计算U值公式中的c_puct，是一个决定探索水平的常数
         :return: 返回一个元组(action, next_node)
         """
@@ -65,7 +67,8 @@ class TreeNode:
     def expand(self, action_priors):
         """
         当select搜索到一个叶结点，且该叶节点代表的局面游戏没有结束，
-        需要expand树，创建一系列可能得节点，即对应节点所有可能选择的动作对应的子节点。
+        需要expand树，创建一系列可能得节点，即对应节点所有可能选择的动作对应的子节点
+
         :param action_priors: 为一个列表，列表中的每一个元素为一个 特定动作及其先验概率 的元组
         :return:
         """
@@ -75,7 +78,8 @@ class TreeNode:
 
     def update(self, leaf_value):
         """
-        根据子树的价值更新当前节点的价值。
+        根据子树的价值更新当前节点的价值
+
         :param leaf_value: 以当前玩家的视角看待得到的子树的价值
         :return:
         """
@@ -87,7 +91,8 @@ class TreeNode:
 
     def update_recursive(self, leaf_value):
         """
-        跟心所有祖先的Q值及访问次数。
+        跟心所有祖先的Q值及访问次数
+
         :param leaf_value:
         :return:
         """
@@ -97,7 +102,8 @@ class TreeNode:
 
     def get_value(self, c_puct):
         """
-        计算并返回一个节点的 上置信限 评价，即Q+U值。
+        计算并返回一个节点的 上置信限 评价，即Q+U值
+
         :param c_puct: 为计算U值公式中的c_puct，是一个决定探索水平的常数
         :return:
         """
@@ -106,14 +112,16 @@ class TreeNode:
 
     def is_leaf(self):
         """
-        判断当前节点是否为叶结点。
+        判断当前节点是否为叶结点。、
+
         :return:
         """
         return self.children == {}
 
     def is_root(self):
         """
-        判断当前几带你是否为根节点。
+        判断当前节点是否为根节点
+
         :return:
         """
         return self.parent is None
@@ -133,6 +141,7 @@ class MCTS:
     def playout(self, simulate_game_state):
         """
         从根节点不断选择直到叶结点，并获取叶结点的值，反向传播到叶结点的祖先节点
+
         :param simulate_game_state: 模拟游戏对象
         :return:
         """
@@ -165,6 +174,7 @@ class MCTS:
     def get_move_probs(self, game, temp=1e-3, player=None):
         """
         执行n_playout次模拟，并根据子节点的访问次数，获得每个动作对应的概率
+
         :param game: 游戏模拟器
         :param temp: 制探索水平的温度参数
         :param player: 调用该函数的player，用于进行进度绘制
@@ -172,7 +182,7 @@ class MCTS:
         """
         for i in range(self.n_playout):
             if not player.valid:
-                return -1
+                return -1, -1
             if player is not None:
                 player.speed = (i + 1, self.n_playout)
             simulate_game_state = game.game_state_simulator(player.is_selfplay)
@@ -187,6 +197,7 @@ class MCTS:
     def get_move(self, game, player=None):
         """
         执行n_playout次模拟，返回访问次数最多的动作
+
         :param game: 游戏模拟器
         :param player: 调用该函数的player，用于进行进度绘制
         :return: 返回访问次数最多的动作
@@ -203,6 +214,7 @@ class MCTS:
     def update_with_move(self, last_move):
         """
         蒙特卡洛搜索树向深层前进一步，并且保存对应子树的全部信息
+
         :param last_move: 上一步选择的动作
         :return:
         """

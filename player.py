@@ -136,6 +136,8 @@ class AlphaGoPlayer(Player):
     def get_action(self, game, temp=1e-3, return_probs=False):
         move_probs = np.zeros(game.board_size ** 2 + 1)
         acts, probs = self.mcts.get_move_probs(game, temp, self)
+        if acts == -1 and probs == -1:
+            return -1
         move_probs[list(acts)] = probs
         if self.is_selfplay:
             # 增加Dirichlet噪声用于探索（在训练时候）

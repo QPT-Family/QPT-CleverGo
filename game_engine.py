@@ -773,6 +773,7 @@ class GameEngine:
 
         self.draw_board()
         self.draw_pieces()
+        self.draw_taiji()
         if len(self.game_state.action_history) > 0:
             self.draw_mark(self.game_state.action_history[-1])
 
