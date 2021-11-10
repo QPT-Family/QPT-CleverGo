@@ -21,7 +21,7 @@
 - QPT Family主页：[https://github.com/QPT-Family](https://github.com/QPT-Family)
 - QPT Family官方交流群：935098082
 
-DeepGeGe：QPT Family成员，AI算法工程师
+DeepGeGe：QPT Family成员
 
 - CSDN博客：[https://blog.csdn.net/qq_24178985](https://blog.csdn.net/qq_24178985)
 - GitHub主页：[https://github.com/DeepGeGe](https://github.com/DeepGeGe)
