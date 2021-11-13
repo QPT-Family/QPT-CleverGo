@@ -52,4 +52,4 @@ Python版本: `3.7`
 7. CleverGo项目程序设计方法原理
 8. CleverGo未来规划
 
-具体规划请参见：[机巧围棋(CleverGo)技术原理文档](https://github.com/QPT-Family/QPT-CleverGo/blob/main/docs/%E9%B8%BD%E5%AD%90%E5%9B%B4%E6%A3%8B(PigonGo)%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86%E6%96%87%E6%A1%A3.md)
+具体规划请参见：[机巧围棋(CleverGo)技术原理文档](https://github.com/QPT-Family/QPT-CleverGo/blob/main/docs/%E6%9C%BA%E5%B7%A7%E5%9B%B4%E6%A3%8B(CleverGo)%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86%E6%96%87%E6%A1%A3.md)
