@@ -13,15 +13,13 @@ class CtBase:
         # 控件是否被激活
         self.active = False
 
-    def enable(self) -> None:
+    def enable(self):
         """激活控件"""
         self.active = True
-        return None
 
-    def disable(self) -> None:
+    def disable(self):
         """冻结控件"""
         self.active = False
-        return None
 
     def update(self, event: pygame.event) -> ...:
         """

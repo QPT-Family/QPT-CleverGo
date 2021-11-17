@@ -79,19 +79,17 @@ class Button(CtBase):
         # 按钮是否被按下
         self.is_down = False
 
-    def draw_up(self) -> None:
+    def draw_up(self):
         """绘制未被点击的按钮"""
         self.is_down = False
         self.draw(self.up_color)
-        return None
 
-    def draw_down(self) -> None:
+    def draw_down(self):
         """绘制已被点击的按钮"""
         self.is_down = True
         self.draw(self.down_color)
-        return None
 
-    def draw(self, base_color: Union[Tuple[int], List[int]]) -> None:
+    def draw(self, base_color: Union[Tuple[int], List[int]]):
         """根据传入的颜色，对按钮显示效果进行更新"""
         # 填充按钮底色
         self.button_surface.fill(base_color)
@@ -101,28 +99,24 @@ class Button(CtBase):
         pygame.draw.rect(self.button_surface, self.inner_edge_color, self.inner_rect, width=1)
         # 绘制按钮文本
         draw_text(self.button_surface, self.text, ["center", "center"])
-        return None
 
-    def set_text(self, text: str, draw_update: bool = True) -> None:
+    def set_text(self, text: str, draw_update: bool = True):
         """设置按钮文本"""
         self.text = self.font.render(text, True, self.text_color)
         if draw_update:
             self.draw_up()
-        return None
 
-    def enable(self) -> None:
+    def enable(self):
         """激活按钮"""
         self.active = True
         self.draw_up()
-        return None
 
-    def disable(self) -> None:
+    def disable(self):
         """冻结按钮"""
         self.active = False
         self.draw_down()
-        return None
 
-    def update(self, event: pygame.event) -> None:
+    def update(self, event: pygame.event):
         """根据pygame.event对按钮进行状态更新和方法调用"""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # 鼠标左键按下
@@ -143,7 +137,6 @@ class Button(CtBase):
                 # 调用相应方法
                 if self.call_function is not None:
                     self.call_function()
-        return None
 
 
 if __name__ == "__main__":
