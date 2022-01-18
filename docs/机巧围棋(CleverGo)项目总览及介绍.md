@@ -81,3 +81,11 @@ GT-Zhang：QPT Family创始人
 2. 机巧围棋中围棋程序内核采用了aigagror作者的GymGo项目，机巧围棋模拟器环境在该项目的基础上进行了自定义封装。此外，机巧围棋项目开发者DeepGeGe（鸽鸽）也是GymGo项目的Contributor~
 
    参考项目地址：[https://github.com/aigagror/GymGo](https://github.com/aigagror/GymGo)
+
+3. 机巧围棋技术原理文档中，深度强化学习基本知识及阿尔法狗算法原理部分参考了wangshusen作者的DRL项目。综合该项目中相关深度强化学习知识，讲解了零狗算法在机巧围棋中的应用。
+
+   参考项目地址：[https://github.com/wangshusen/DRL](https://github.com/wangshusen/DRL)
+
+4. 机巧围棋中，有关蒙特卡洛树搜索等部分参考了junxiaosong作者的AlphaZero_Gomoku项目。其中蒙特卡洛树搜索的实现方式基本与该项目中实现保持一致，并结合机巧围棋中相关功能需求进行了部分更改。
+
+   参考项目地址：[https://github.com/junxiaosong/AlphaZero_Gomoku](https://github.com/junxiaosong/AlphaZero_Gomoku)

@@ -153,10 +153,12 @@ MCTS第一步【选择】的目的就是找出胜算较高的动作，只搜索�
 
   进过上述扩展之后，之前的叶子节点![146](https://latex.codecogs.com/png.latex?l) ，现在变成了内部节点。做完了扩展和求值后，从节点![147](https://latex.codecogs.com/png.latex?l) 开始，逐层向搜索树根节点回溯，并依次更新搜索树当次被遍历的路径上各层节点的信息：
   
-  ![148](https://latex.codecogs.com/png.latex?N(s_n,a_n)=N(s_n,a_n)+1\\W(s_n,a_n)=W(s_n,a_n)+v_n\\Q(s_n,a_n)=\frac{W(s_n,a_n)}{N(s_n,a_n)}) 
+  ![148](https://latex.codecogs.com/png.latex?N(s_n,a_n)=N(s_n,a_n)+1\\\\W(s_n,a_n)=W(s_n,a_n)+v_n\\\\Q(s_n,a_n)=\frac{W(s_n,a_n)}{N(s_n,a_n)}) 
   
   > ![149](https://latex.codecogs.com/png.latex?s_n) ：表示搜索树中当次被遍历路径上节点对应的棋局状态；
+  > 
   > ![150](https://latex.codecogs.com/png.latex?a_n) ：表示搜索树中当次被遍历路径上节点对应棋局状态下选择的动作；
+  > 
   > ![151](https://latex.codecogs.com/png.latex?v_n) ：表示搜索树中当次被遍历路径上节点的价值，由于搜索树中相邻两层的落子方是不同的，因此相邻两层的节点价值互为相反数。
 
 上述三个流程为零狗中的一次MCTS模拟，在零狗往真正的棋盘上落一个棋子之前，会进行1600次模拟。在上千次MCTS完成之后，MCTS基于下述公式做出真正的决策：
